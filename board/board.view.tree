@@ -2,9 +2,12 @@ $bog_pazzle_board $mol_view
 	image_uri \
 	rows 1
 	columns 1
+	show_numbers false
+	shuffle_enabled false
 	sub /
 		<= Placeholder $mol_text
 			text \Предпросмотр появится после выбора изображения.
+		<= Controls $mol_row
 		<= Grid $mol_view
 			style *
 				gridTemplateColumns <= grid_template_columns \

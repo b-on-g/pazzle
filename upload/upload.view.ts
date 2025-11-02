@@ -14,5 +14,15 @@ namespace $.$$ {
 		columns_count(): number {
 			return this.Settings().columns_count()
 		}
+
+		@$mol_mem
+		show_numbers(next?: boolean): boolean {
+			return this.Settings().show_numbers(next)
+		}
+
+		@$mol_mem
+		shuffle_enabled(next?: boolean): boolean {
+			return this.Settings().shuffle_enabled(next)
+		}
 	}
 }

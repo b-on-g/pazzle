@@ -1,6 +1,12 @@
 $bog_pazzle_board_tile $mol_view
-	row 0
-	column 0
 	rows 1
 	columns 1
+	piece_row 0
+	piece_column 0
 	image_uri \
+	selected false
+	label \
+	event_click?event null
+	sub /
+		<= Number $mol_text
+			text <= label \

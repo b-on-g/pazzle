@@ -2,6 +2,8 @@ $bog_pazzle_upload $mol_list
 	image_uri \
 	rows_count 1
 	columns_count 1
+	show_numbers true
+	shuffle_enabled true
 	rows /
 		<= Intro $mol_text
 			text \Загрузите изображение и настройте параметры пазла.
@@ -18,3 +20,5 @@ $bog_pazzle_upload $mol_list
 			image_uri <= image_uri
 			rows <= rows_count
 			columns <= columns_count
+			show_numbers <= show_numbers
+			shuffle_enabled <= shuffle_enabled

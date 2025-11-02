@@ -4,6 +4,13 @@ namespace $.$$ {
 		flexDirection: 'column',
 		gap: $mol_gap.block,
 
+		Controls: {
+			display: 'flex',
+			alignItems: 'center',
+			gap: $mol_gap.block,
+			flexWrap: 'wrap',
+		},
+
 		Grid: {
 			display: 'grid',
 			gap: '0.25rem',
