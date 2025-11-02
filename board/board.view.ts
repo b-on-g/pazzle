@@ -152,12 +152,30 @@ namespace $.$$ {
 
 		slot_index_from_point(client_x: number | undefined, client_y: number | undefined) {
 			if (client_x === undefined || client_y === undefined) return null
-			const element = this.$.$mol_dom_context.document.elementFromPoint(client_x, client_y) as HTMLElement | null
-			if (!element) return null
-			const tile = element.closest('[data-bog-pazzle-slot]') as HTMLElement | null
-			if (!tile) return null
-			const slot = Number(tile.getAttribute('data-bog-pazzle-slot'))
-			return Number.isFinite(slot) ? slot : null
+			const doc = this.$.$mol_dom_context.document
+			const element = doc.elementFromPoint(client_x, client_y) as HTMLElement | null
+			const tile = element?.closest?.('[data-bog-pazzle-slot]') as HTMLElement | null
+			if (tile) {
+				const slot = Number(tile.getAttribute('data-bog-pazzle-slot'))
+				if (Number.isFinite(slot)) return slot
+			}
+
+			const grid = this.Grid().dom_node() as HTMLElement | null
+			if (!grid) return null
+			const rect = grid.getBoundingClientRect()
+			if (client_x < rect.left || client_x > rect.right || client_y < rect.top || client_y > rect.bottom)
+				return null
+
+			const rel_x = client_x - rect.left
+			const rel_y = client_y - rect.top
+			const columns = Math.max(1, this.columns())
+			const rows = Math.max(1, this.rows())
+			const cell_width = rect.width / columns
+			const cell_height = rect.height / rows
+
+			const column = Math.min(columns - 1, Math.max(0, Math.floor(rel_x / cell_width)))
+			const row = Math.min(rows - 1, Math.max(0, Math.floor(rel_y / cell_height)))
+			return row * columns + column
 		}
 
 		reset_tile_position(slot_index: number) {
@@ -177,7 +195,7 @@ namespace $.$$ {
 		tile_drag_move(_slot_index: number, event: PointerEvent) {
 			if (this.drag_source_index() === null) return
 			const hover = this.slot_index_from_point(event.clientX, event.clientY)
-			this.drag_hover_index(hover)
+			this.drag_hover_index(hover ?? this.drag_source_index())
 		}
 
 		@$mol_action
@@ -268,36 +286,36 @@ namespace $.$$ {
 			return this.is_order_solved(order)
 		}
 
-	@$mol_action
-	tile_pick(slot_index: number) {
-		this.drag_source_index(null)
-		this.drag_hover_index(null)
-		const current = this.selected_index()
-		if (current === null) {
-			this.selected_index(slot_index)
-			return
-		}
+		@$mol_action
+		tile_pick(slot_index: number) {
+			this.drag_source_index(null)
+			this.drag_hover_index(null)
+			const current = this.selected_index()
+			if (current === null) {
+				this.selected_index(slot_index)
+				return
+			}
 			if (current === slot_index) {
 				this.selected_index(null)
 				return
 			}
 			const order = [...this.tile_indices()]
-		;[order[current], order[slot_index]] = [order[slot_index], order[current]]
-		this.tile_indices(order)
-		this.moves(this.moves() + 1)
-		this.selected_index(null)
-	}
+			;[order[current], order[slot_index]] = [order[slot_index], order[current]]
+			this.tile_indices(order)
+			this.moves(this.moves() + 1)
+			this.selected_index(null)
+		}
 
-	@$mol_action
-	shuffle() {
-		const order = this.shuffle_random(this.tile_indices())
-		this.tile_indices(order)
-		this.moves(0)
-		this.selected_index(null)
-		this.drag_source_index(null)
-		this.drag_hover_index(null)
-		this.reset_all_tile_positions()
-	}
+		@$mol_action
+		shuffle() {
+			const order = this.shuffle_random(this.tile_indices())
+			this.tile_indices(order)
+			this.moves(0)
+			this.selected_index(null)
+			this.drag_source_index(null)
+			this.drag_hover_index(null)
+			this.reset_all_tile_positions()
+		}
 
 		shuffle_random(base: readonly number[]) {
 			const order = [...base]
@@ -313,22 +331,22 @@ namespace $.$$ {
 
 		@$mol_action
 		reset() {
-		const rows = Math.max(1, this.rows())
-		const columns = Math.max(1, this.columns())
-		this.tile_indices(this.indices_default(rows * columns))
-		this.moves(0)
-		this.selected_index(null)
-		this.drag_source_index(null)
-		this.drag_hover_index(null)
-		this.reset_all_tile_positions()
-	}
-
-	reset_all_tile_positions() {
-		const total = this.tile_count()
-		for (let slot = 0; slot < total; slot++) {
-			this.reset_tile_position(slot)
+			const rows = Math.max(1, this.rows())
+			const columns = Math.max(1, this.columns())
+			this.tile_indices(this.indices_default(rows * columns))
+			this.moves(0)
+			this.selected_index(null)
+			this.drag_source_index(null)
+			this.drag_hover_index(null)
+			this.reset_all_tile_positions()
 		}
-	}
+
+		reset_all_tile_positions() {
+			const total = this.tile_count()
+			for (let slot = 0; slot < total; slot++) {
+				this.reset_tile_position(slot)
+			}
+		}
 
 		grid_template_columns() {
 			return `repeat(${Math.max(1, this.columns())}, 1fr)`

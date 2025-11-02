@@ -8,6 +8,8 @@ $bog_pazzle_board_tile $rise_drag_view
 	label \
 	event_click?event null
 	slot_index 0
+	repos_x* 1
+	repos_y* 1
 	sub /
 		<= Number $mol_text
 			text <= label \

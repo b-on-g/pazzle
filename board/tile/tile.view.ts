@@ -40,6 +40,45 @@ namespace $.$$ {
 			return next ?? 0
 		}
 
+		repos_x(delta: number) {
+			return this.limit_delta(delta)
+		}
+
+		repos_y(delta: number) {
+			return this.limit_delta(delta)
+		}
+
+		limit_delta(delta: number) {
+			const max = this.drag_limit()
+			return Math.max(-max, Math.min(max, delta))
+		}
+
+		drag_limit() {
+			const rows = Math.max(1, this.rows())
+			const columns = Math.max(1, this.columns())
+			const min_dimension = Math.min(rows, columns)
+			if (min_dimension <= 0) return 0
+			const base = Math.min(this.cell_size_px().width, this.cell_size_px().height)
+			return base * 0.8
+		}
+
+		cell_size_px() {
+			const grid = this.host_grid()
+			if (!grid) return { width: 0, height: 0 }
+			const rect = grid.getBoundingClientRect()
+			const rows = Math.max(1, this.rows())
+			const columns = Math.max(1, this.columns())
+			return {
+				width: rect.width / columns,
+				height: rect.height / rows,
+			}
+		}
+
+		host_grid() {
+			const element = this.dom_node()
+			return element?.parentElement
+		}
+
 		override style() {
 			const rows = Math.max(1, this.rows())
 			const columns = Math.max(1, this.columns())
@@ -62,6 +101,7 @@ namespace $.$$ {
 			style.transform = offset_x || offset_y ? `translate(${offset_x}px, ${offset_y}px)` : ''
 			style.zIndex = this.dragged() ? 10 : ''
 			style.cursor = this.dragged() ? 'grabbing' : 'grab'
+			style.pointerEvents = this.dragged() ? 'none' : ''
 			return style
 		}
 
@@ -70,6 +110,7 @@ namespace $.$$ {
 				...super.attr(),
 				'data-bog-pazzle-slot': String(this.slot_index()),
 				'data-selected': this.selected() ? 'true' : 'false',
+				'data-dragging': this.dragged() ? 'true' : 'false',
 			}
 		}
 	}
