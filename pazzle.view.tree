@@ -1,0 +1,6 @@
+$bog_pazzle $mol_page
+	plugins /
+		<= Theme $bog_theme_auto
+	head /
+		<= title \Pazzle
+		<= Lights $mol_lights_toggle
