@@ -1,4 +1,7 @@
 $bog_pazzle_upload $mol_list
+	image_uri \
+	rows_count 1
+	columns_count 1
 	rows /
 		<= Intro $mol_text
 			text \Загрузите изображение и настройте параметры пазла.
@@ -9,5 +12,9 @@ $bog_pazzle_upload $mol_list
 		<= Settings_title $mol_text
 			text \Настройки пазла
 		<= Settings $bog_pazzle_settings
-		<= Preview_hint $mol_text
-			text \Предпросмотр появится после выбора изображения.
+		<= Preview_title $mol_text
+			text \Предпросмотр
+		<= Preview $bog_pazzle_board
+			image_uri <= image_uri
+			rows <= rows_count
+			columns <= columns_count
