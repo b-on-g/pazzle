@@ -1,0 +1,16 @@
+$bog_pazzle_menu $mol_list
+	rows /
+		<= Title $mol_text
+			text \Меню
+		<= New_game $mol_button_major
+			sub /
+				<= New_game_label $mol_text
+					text \Новый пазл
+		<= Saved $mol_button_minor
+			sub /
+				<= Saved_label $mol_text
+					text \Мои сохранения
+		<= Help $mol_button_minor
+			sub /
+				<= Help_label $mol_text
+					text \Как играть

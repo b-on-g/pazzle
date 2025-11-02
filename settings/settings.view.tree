@@ -1,0 +1,24 @@
+$bog_pazzle_settings $mol_list
+	rows /
+		<= Rows_labeler $mol_labeler
+			Label <= Rows_label $mol_text
+				text \Строки
+			Content <= Rows_input $mol_number
+				value_min 2
+				value_max 20
+				value? <=> rows_count? 4
+				hint \Количество строк
+		<= Columns_labeler $mol_labeler
+			Label <= Columns_label $mol_text
+				text \Столбцы
+			Content <= Columns_input $mol_number
+				value_min 2
+				value_max 20
+				value? <=> columns_count? 4
+				hint \Количество столбцов
+		<= Shuffle $mol_check
+			title \Перемешать автоматически
+			checked? <=> shuffle_enabled? true
+		<= Show_numbers $mol_check
+			title \Показывать номера фрагментов
+			checked? <=> show_numbers? true

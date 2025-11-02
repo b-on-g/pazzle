@@ -1,0 +1,13 @@
+$bog_pazzle_upload $mol_list
+	rows /
+		<= Intro $mol_text
+			text \Загрузите изображение и настройте параметры пазла.
+		<= Image $mol_labeler
+			Label <= Image_label $mol_text
+				text \Изображение пазла
+			Content <= Image_control $bog_pazzle_upload_image
+		<= Settings_title $mol_text
+			text \Настройки пазла
+		<= Settings $bog_pazzle_settings
+		<= Preview_hint $mol_text
+			text \Предпросмотр появится после выбора изображения.

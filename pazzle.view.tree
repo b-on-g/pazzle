@@ -4,3 +4,5 @@ $bog_pazzle $mol_page
 	head /
 		<= title \Pazzle
 		<= Lights $mol_lights_toggle
+	body /
+		<= Layout $bog_pazzle_layout
