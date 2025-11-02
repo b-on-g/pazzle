@@ -32,6 +32,7 @@ namespace $.$$ {
 			':empty': {
 				display: 'none',
 			},
+			pointerEvents: 'none',
 		},
 	})
 }

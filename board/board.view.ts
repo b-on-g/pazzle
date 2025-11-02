@@ -17,7 +17,7 @@ namespace $.$$ {
 			controls.sub = () => [
 				this.Status_text(),
 				this.Moves_text(),
-				...this.tile_count() > 1 ? [this.Shuffle_btn(), this.Reset_btn()] : [],
+				...(this.tile_count() > 1 ? [this.Shuffle_btn(), this.Reset_btn()] : []),
 			]
 			return controls
 		}
@@ -100,16 +100,100 @@ namespace $.$$ {
 			uri: string
 			piece_index: number
 		}) {
-			return this.$.$bog_pazzle_board_tile.make({
-				rows: () => rows,
-				columns: () => columns,
-				piece_row: () => piece_row,
-				piece_column: () => piece_column,
-				image_uri: () => uri,
-				selected: () => this.selected_index() === slot_index,
-				label: () => (this.show_numbers() ? String(piece_index + 1) : ''),
-				event_click: () => this.tile_pick(slot_index),
+			const tile = this.tile_instance(slot_index)
+			tile.rows(rows)
+			tile.columns(columns)
+			tile.piece_row(piece_row)
+			tile.piece_column(piece_column)
+			tile.image_uri(uri)
+			tile.slot_index(slot_index)
+			tile.label(this.show_numbers() ? String(piece_index + 1) : '')
+			tile.selected(this.tile_marked(slot_index))
+			tile.event_click(() => this.tile_pick(slot_index))
+			tile.on_drag_start((event: PointerEvent) => this.tile_drag_start(slot_index, event))
+			tile.on_drag((event: PointerEvent) => this.tile_drag_move(slot_index, event))
+			tile.on_drag_end((event: PointerEvent) => this.tile_drag_end(slot_index, event))
+			return tile
+		}
+
+		tile_instance(slot_index: number) {
+			const $ = this.$
+			return $.$bog_pazzle_board_tile.make({
+				slot_index: $.$mol_const(slot_index),
 			})
+		}
+
+		tile_marked(slot_index: number) {
+			const selected = this.selected_index()
+			const drag_source = this.drag_source_index()
+			const drag_hover = this.drag_hover_index()
+			if (drag_source !== null && drag_source === slot_index) return true
+			if (drag_hover !== null && drag_hover === slot_index && drag_source !== null) return true
+			return selected !== null && selected === slot_index
+		}
+
+		@$mol_mem
+		drag_source_index(next?: number | null) {
+			this.rows()
+			this.columns()
+			this.image_uri()
+			if (next !== undefined) return next
+			return null
+		}
+
+		@$mol_mem
+		drag_hover_index(next?: number | null) {
+			this.rows()
+			this.columns()
+			this.image_uri()
+			if (next !== undefined) return next
+			return null
+		}
+
+		slot_index_from_point(client_x: number | undefined, client_y: number | undefined) {
+			if (client_x === undefined || client_y === undefined) return null
+			const element = this.$.$mol_dom_context.document.elementFromPoint(client_x, client_y) as HTMLElement | null
+			if (!element) return null
+			const tile = element.closest('[data-bog-pazzle-slot]') as HTMLElement | null
+			if (!tile) return null
+			const slot = Number(tile.getAttribute('data-bog-pazzle-slot'))
+			return Number.isFinite(slot) ? slot : null
+		}
+
+		reset_tile_position(slot_index: number) {
+			const tile = this.tile_instance(slot_index)
+			tile.x(0)
+			tile.y(0)
+		}
+
+		@$mol_action
+		tile_drag_start(slot_index: number, _event: PointerEvent) {
+			this.drag_source_index(slot_index)
+			this.drag_hover_index(slot_index)
+			this.selected_index(slot_index)
+		}
+
+		@$mol_action
+		tile_drag_move(_slot_index: number, event: PointerEvent) {
+			if (this.drag_source_index() === null) return
+			const hover = this.slot_index_from_point(event.clientX, event.clientY)
+			this.drag_hover_index(hover)
+		}
+
+		@$mol_action
+		tile_drag_end(slot_index: number, event: PointerEvent) {
+			const source = this.drag_source_index()
+			this.reset_tile_position(slot_index)
+			const target = this.slot_index_from_point(event.clientX, event.clientY)
+			if (source !== null && target !== null && target !== source) {
+				const order = [...this.tile_indices()]
+				;[order[source], order[target]] = [order[target], order[source]]
+				this.tile_indices(order)
+				this.moves(this.moves() + 1)
+			}
+			this.selected_index(null)
+			this.drag_source_index(null)
+			this.drag_hover_index(null)
 		}
 
 		@$mol_mem
@@ -139,7 +223,7 @@ namespace $.$$ {
 				;[order[index], order[swap]] = [order[swap], order[index]]
 			}
 			if (this.is_order_solved(order) && order.length > 1) {
-				[order[0], order[1]] = [order[1], order[0]]
+				;[order[0], order[1]] = [order[1], order[0]]
 			}
 			return order
 		}
@@ -184,31 +268,36 @@ namespace $.$$ {
 			return this.is_order_solved(order)
 		}
 
-		@$mol_action
-		tile_pick(slot_index: number) {
-			const current = this.selected_index()
-			if (current === null) {
-				this.selected_index(slot_index)
-				return
-			}
+	@$mol_action
+	tile_pick(slot_index: number) {
+		this.drag_source_index(null)
+		this.drag_hover_index(null)
+		const current = this.selected_index()
+		if (current === null) {
+			this.selected_index(slot_index)
+			return
+		}
 			if (current === slot_index) {
 				this.selected_index(null)
 				return
 			}
 			const order = [...this.tile_indices()]
-			;[order[current], order[slot_index]] = [order[slot_index], order[current]]
-			this.tile_indices(order)
-			this.moves(this.moves() + 1)
-			this.selected_index(null)
-		}
+		;[order[current], order[slot_index]] = [order[slot_index], order[current]]
+		this.tile_indices(order)
+		this.moves(this.moves() + 1)
+		this.selected_index(null)
+	}
 
-		@$mol_action
-		shuffle() {
-			const order = this.shuffle_random(this.tile_indices())
-			this.tile_indices(order)
-			this.moves(0)
-			this.selected_index(null)
-		}
+	@$mol_action
+	shuffle() {
+		const order = this.shuffle_random(this.tile_indices())
+		this.tile_indices(order)
+		this.moves(0)
+		this.selected_index(null)
+		this.drag_source_index(null)
+		this.drag_hover_index(null)
+		this.reset_all_tile_positions()
+	}
 
 		shuffle_random(base: readonly number[]) {
 			const order = [...base]
@@ -217,19 +306,29 @@ namespace $.$$ {
 				;[order[index], order[swap]] = [order[swap], order[index]]
 			}
 			if (this.is_order_solved(order) && order.length > 1) {
-				[order[0], order[1]] = [order[1], order[0]]
+				;[order[0], order[1]] = [order[1], order[0]]
 			}
 			return order
 		}
 
 		@$mol_action
 		reset() {
-			const rows = Math.max(1, this.rows())
-			const columns = Math.max(1, this.columns())
-			this.tile_indices(this.indices_default(rows * columns))
-			this.moves(0)
-			this.selected_index(null)
+		const rows = Math.max(1, this.rows())
+		const columns = Math.max(1, this.columns())
+		this.tile_indices(this.indices_default(rows * columns))
+		this.moves(0)
+		this.selected_index(null)
+		this.drag_source_index(null)
+		this.drag_hover_index(null)
+		this.reset_all_tile_positions()
+	}
+
+	reset_all_tile_positions() {
+		const total = this.tile_count()
+		for (let slot = 0; slot < total; slot++) {
+			this.reset_tile_position(slot)
 		}
+	}
 
 		grid_template_columns() {
 			return `repeat(${Math.max(1, this.columns())}, 1fr)`

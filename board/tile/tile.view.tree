@@ -1,4 +1,4 @@
-$bog_pazzle_board_tile $mol_view
+$bog_pazzle_board_tile $rise_drag_view
 	rows 1
 	columns 1
 	piece_row 0
@@ -7,6 +7,7 @@ $bog_pazzle_board_tile $mol_view
 	selected false
 	label \
 	event_click?event null
+	slot_index 0
 	sub /
 		<= Number $mol_text
 			text <= label \

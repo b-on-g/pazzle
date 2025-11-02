@@ -35,24 +35,42 @@ namespace $.$$ {
 			return next ?? ''
 		}
 
-			override style() {
+		@$mol_mem
+		slot_index(next?: number) {
+			return next ?? 0
+		}
+
+		override style() {
 			const rows = Math.max(1, this.rows())
 			const columns = Math.max(1, this.columns())
 			const tile_row = this.piece_row()
 			const tile_column = this.piece_column()
 			const uri = this.image_uri()
+			const offset_x = this.x()
+			const offset_y = this.y()
 
 			const pos_x = columns === 1 ? 0 : (tile_column / (columns - 1)) * 100
 			const pos_y = rows === 1 ? 0 : (tile_row / (rows - 1)) * 100
 
-			const style = { ...super.style() } as Record<string, string | number>
+			const style = super.style()
 			style.backgroundImage = uri ? `url(${uri})` : ''
 			style.backgroundSize = uri ? `${columns * 100}% ${rows * 100}%` : ''
 			style.backgroundPosition = uri ? `${pos_x}% ${pos_y}%` : ''
 			style.boxShadow = this.selected()
 				? 'inset 0 0 0 3px rgba(255,255,255,0.75)'
 				: 'inset 0 0 0 1px var(--mol_theme_line)'
+			style.transform = offset_x || offset_y ? `translate(${offset_x}px, ${offset_y}px)` : ''
+			style.zIndex = this.dragged() ? 10 : ''
+			style.cursor = this.dragged() ? 'grabbing' : 'grab'
 			return style
+		}
+
+		override attr() {
+			return {
+				...super.attr(),
+				'data-bog-pazzle-slot': String(this.slot_index()),
+				'data-selected': this.selected() ? 'true' : 'false',
+			}
 		}
 	}
 }
