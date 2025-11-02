@@ -30,7 +30,11 @@ namespace $.$$ {
 			const data = this.image_data()
 			if (!data) return ''
 			if (!this._image_uri) {
-				const blob = new Blob([data], { type: 'image/*' })
+				const buffer =
+					data.buffer instanceof ArrayBuffer
+						? data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)
+						: data.slice().buffer
+				const blob = new Blob([buffer], { type: 'image/*' })
 				this._image_uri = URL.createObjectURL(blob)
 			}
 			return this._image_uri
