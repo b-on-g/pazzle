@@ -40,6 +40,11 @@ namespace $.$$ {
 			return next ?? 0
 		}
 
+		@$mol_mem
+		drags_synced(next?: readonly $rise_drag[]) {
+			return next ?? []
+		}
+
 		repos_x(delta: number) {
 			return this.limit_delta(delta)
 		}

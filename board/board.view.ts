@@ -117,7 +117,7 @@ namespace $.$$ {
 			const synced = group
 				.filter(member => member !== slot_index)
 				.map(member => this.tile_instance(member).Drag())
-			tile.Drag().drags_synced(synced)
+			tile.drags_synced(synced)
 			return tile
 		}
 
@@ -227,26 +227,26 @@ namespace $.$$ {
 			return null
 		}
 
-	@$mol_mem
-	drag_hover_index(next?: number | null) {
-		this.rows()
-		this.columns()
-		this.image_uri()
-		if (next !== undefined) return next
-		return null
-	}
+		@$mol_mem
+		drag_hover_index(next?: number | null) {
+			this.rows()
+			this.columns()
+			this.image_uri()
+			if (next !== undefined) return next
+			return null
+		}
 
-	@$mol_mem
-	drag_group_slots(next?: readonly number[] | null) {
-		if (next !== undefined) return next ?? null
-		return null
-	}
+		@$mol_mem
+		drag_group_slots(next?: readonly number[] | null) {
+			if (next !== undefined) return next ?? null
+			return null
+		}
 
-	@$mol_mem
-	drag_target_slots(next?: readonly number[] | null) {
-		if (next !== undefined) return next ?? null
-		return null
-	}
+		@$mol_mem
+		drag_target_slots(next?: readonly number[] | null) {
+			if (next !== undefined) return next ?? null
+			return null
+		}
 
 		slot_index_from_point(client_x: number | undefined, client_y: number | undefined) {
 			if (client_x === undefined || client_y === undefined) return null
@@ -276,77 +276,77 @@ namespace $.$$ {
 			return row * columns + column
 		}
 
-	reset_tile_position(slot_index: number) {
-		const tile = this.tile_instance(slot_index)
-		tile.x(0)
-		tile.y(0)
-	}
+		reset_tile_position(slot_index: number) {
+			const tile = this.tile_instance(slot_index)
+			tile.x(0)
+			tile.y(0)
+		}
 
-	@$mol_action
-	tile_drag_start(slot_index: number, _event: PointerEvent) {
-		if (this.tile_locked(slot_index)) {
+		@$mol_action
+		tile_drag_start(slot_index: number, _event: PointerEvent) {
+			if (this.tile_locked(slot_index)) {
+				this.drag_source_index(null)
+				this.drag_hover_index(null)
+				this.drag_group_slots(null)
+				this.drag_target_slots(null)
+				this.reset_tile_position(slot_index)
+				return
+			}
+			const group = this.tile_groups().get(slot_index) ?? [slot_index]
+			this.drag_group_slots(group)
+			this.drag_target_slots(group)
+			this.drag_source_index(slot_index)
+			this.drag_hover_index(slot_index)
+			this.selected_index(slot_index)
+		}
+
+		@$mol_action
+		tile_drag_move(slot_index: number, event: PointerEvent) {
+			const source = this.drag_source_index()
+			if (source === null || slot_index !== source) return
+			const hover = this.slot_index_from_point(event.clientX, event.clientY)
+			const group = this.drag_group_slots() ?? [source]
+			if (hover === null) {
+				this.drag_hover_index(source)
+				this.drag_target_slots(group)
+				return
+			}
+			this.drag_hover_index(hover)
+			const source_coord = this.slot_coord(source)
+			const hover_coord = this.slot_coord(hover)
+			const delta_row = hover_coord.row - source_coord.row
+			const delta_col = hover_coord.col - source_coord.col
+			const dest = this.group_dest_slots(group, delta_row, delta_col)
+			this.drag_target_slots(dest ?? group)
+		}
+
+		@$mol_action
+		tile_drag_end(slot_index: number, event: PointerEvent) {
+			const source = this.drag_source_index()
+			if (source !== null && slot_index === source) {
+				const group = this.drag_group_slots() ?? [source]
+				const dest = this.drag_target_slots()
+				let moved = false
+				if (dest && dest.length === group.length && !this.same_slots(group, dest)) {
+					moved = this.apply_group_move(group, dest)
+				} else {
+					const target = this.slot_index_from_point(event.clientX, event.clientY)
+					if (target !== null && target !== source) {
+						const order = [...this.tile_indices()]
+						;[order[source], order[target]] = [order[target], order[source]]
+						this.tile_indices(order)
+						moved = true
+					}
+				}
+				if (moved) this.moves(this.moves() + 1)
+			}
+			this.reset_all_tile_positions()
+			this.selected_index(null)
 			this.drag_source_index(null)
 			this.drag_hover_index(null)
 			this.drag_group_slots(null)
 			this.drag_target_slots(null)
-			this.reset_tile_position(slot_index)
-			return
 		}
-		const group = this.tile_groups().get(slot_index) ?? [slot_index]
-		this.drag_group_slots(group)
-		this.drag_target_slots(group)
-		this.drag_source_index(slot_index)
-		this.drag_hover_index(slot_index)
-		this.selected_index(slot_index)
-	}
-
-	@$mol_action
-	tile_drag_move(slot_index: number, event: PointerEvent) {
-		const source = this.drag_source_index()
-		if (source === null || slot_index !== source) return
-		const hover = this.slot_index_from_point(event.clientX, event.clientY)
-		const group = this.drag_group_slots() ?? [source]
-		if (hover === null) {
-			this.drag_hover_index(source)
-			this.drag_target_slots(group)
-			return
-		}
-		this.drag_hover_index(hover)
-		const source_coord = this.slot_coord(source)
-		const hover_coord = this.slot_coord(hover)
-		const delta_row = hover_coord.row - source_coord.row
-		const delta_col = hover_coord.col - source_coord.col
-		const dest = this.group_dest_slots(group, delta_row, delta_col)
-		this.drag_target_slots(dest ?? group)
-	}
-
-	@$mol_action
-	tile_drag_end(slot_index: number, event: PointerEvent) {
-		const source = this.drag_source_index()
-		if (source !== null && slot_index === source) {
-			const group = this.drag_group_slots() ?? [source]
-			const dest = this.drag_target_slots()
-			let moved = false
-			if (dest && dest.length === group.length && !this.same_slots(group, dest)) {
-				moved = this.apply_group_move(group, dest)
-			} else {
-				const target = this.slot_index_from_point(event.clientX, event.clientY)
-				if (target !== null && target !== source) {
-					const order = [...this.tile_indices()]
-					;[order[source], order[target]] = [order[target], order[source]]
-					this.tile_indices(order)
-					moved = true
-				}
-			}
-			if (moved) this.moves(this.moves() + 1)
-		}
-		this.reset_all_tile_positions()
-		this.selected_index(null)
-		this.drag_source_index(null)
-		this.drag_hover_index(null)
-		this.drag_group_slots(null)
-		this.drag_target_slots(null)
-	}
 
 		@$mol_mem
 		tile_indices(next?: readonly number[]) {
@@ -420,46 +420,46 @@ namespace $.$$ {
 			return this.is_order_solved(order)
 		}
 
-	@$mol_action
-	tile_pick(slot_index: number) {
-		if (this.tile_locked(slot_index)) {
+		@$mol_action
+		tile_pick(slot_index: number) {
+			if (this.tile_locked(slot_index)) {
+				this.selected_index(null)
+				return
+			}
+			this.drag_source_index(null)
+			this.drag_hover_index(null)
+			const current = this.selected_index()
+			if (current === null) {
+				this.selected_index(slot_index)
+				return
+			}
+			if (this.tile_locked(current)) {
+				this.selected_index(null)
+				return
+			}
+			if (current === slot_index) {
+				this.selected_index(null)
+				return
+			}
+			const order = [...this.tile_indices()]
+			;[order[current], order[slot_index]] = [order[slot_index], order[current]]
+			this.tile_indices(order)
+			this.moves(this.moves() + 1)
 			this.selected_index(null)
-			return
 		}
-		this.drag_source_index(null)
-		this.drag_hover_index(null)
-		const current = this.selected_index()
-		if (current === null) {
-			this.selected_index(slot_index)
-			return
-		}
-		if (this.tile_locked(current)) {
-			this.selected_index(null)
-			return
-		}
-		if (current === slot_index) {
-			this.selected_index(null)
-			return
-		}
-		const order = [...this.tile_indices()]
-		;[order[current], order[slot_index]] = [order[slot_index], order[current]]
-		this.tile_indices(order)
-		this.moves(this.moves() + 1)
-		this.selected_index(null)
-	}
 
-	@$mol_action
-	shuffle() {
-		const order = this.shuffle_random(this.tile_indices())
-		this.tile_indices(order)
-		this.moves(0)
-		this.selected_index(null)
-		this.drag_source_index(null)
-		this.drag_hover_index(null)
-		this.drag_group_slots(null)
-		this.drag_target_slots(null)
-		this.reset_all_tile_positions()
-	}
+		@$mol_action
+		shuffle() {
+			const order = this.shuffle_random(this.tile_indices())
+			this.tile_indices(order)
+			this.moves(0)
+			this.selected_index(null)
+			this.drag_source_index(null)
+			this.drag_hover_index(null)
+			this.drag_group_slots(null)
+			this.drag_target_slots(null)
+			this.reset_all_tile_positions()
+		}
 
 		shuffle_random(base: readonly number[]) {
 			const order = [...base]
@@ -473,84 +473,84 @@ namespace $.$$ {
 			return order
 		}
 
-	@$mol_action
-	reset() {
-		const rows = Math.max(1, this.rows())
-		const columns = Math.max(1, this.columns())
-		this.tile_indices(this.indices_default(rows * columns))
-		this.moves(0)
-		this.selected_index(null)
-		this.drag_source_index(null)
-		this.drag_hover_index(null)
-		this.drag_group_slots(null)
-		this.drag_target_slots(null)
-		this.reset_all_tile_positions()
-	}
-
-	reset_all_tile_positions() {
-		const total = this.tile_count()
-		for (let slot = 0; slot < total; slot++) {
-			this.reset_tile_position(slot)
-		}
-	}
-
-	group_dest_slots(group: readonly number[], delta_row: number, delta_col: number) {
-		const rows = Math.max(1, this.rows())
-		const columns = Math.max(1, this.columns())
-		const dest: number[] = []
-		const set = new Set<number>()
-		for (const slot of group) {
-			const { row, col } = this.slot_coord(slot)
-			const dest_row = row + delta_row
-			const dest_col = col + delta_col
-			if (dest_row < 0 || dest_row >= rows || dest_col < 0 || dest_col >= columns) return null
-			const dest_slot = dest_row * columns + dest_col
-			if (set.has(dest_slot)) return null
-			set.add(dest_slot)
-			dest.push(dest_slot)
-		}
-		return dest
-	}
-
-	same_slots(a: readonly number[], b: readonly number[]) {
-		if (a.length !== b.length) return false
-		for (let i = 0; i < a.length; i++) {
-			if (a[i] !== b[i]) return false
-		}
-		return true
-	}
-
-	apply_group_move(group: readonly number[], dest: readonly number[]) {
-		if (dest.length !== group.length) return false
-		const order = this.tile_indices()
-		const new_order = [...order]
-		const group_set = new Set(group)
-		const dest_set = new Set(dest)
-		if (dest_set.size !== dest.length) return false
-
-		const displaced: number[] = []
-		const sources_for_displaced: number[] = []
-
-		for (let i = 0; i < group.length; i++) {
-			const src = group[i]
-			const dst = dest[i]
-			const piece = order[src]
-			const occupant = order[dst]
-			if (!group_set.has(dst)) displaced.push(occupant)
-			new_order[dst] = piece
-			if (!dest_set.has(src)) sources_for_displaced.push(src)
+		@$mol_action
+		reset() {
+			const rows = Math.max(1, this.rows())
+			const columns = Math.max(1, this.columns())
+			this.tile_indices(this.indices_default(rows * columns))
+			this.moves(0)
+			this.selected_index(null)
+			this.drag_source_index(null)
+			this.drag_hover_index(null)
+			this.drag_group_slots(null)
+			this.drag_target_slots(null)
+			this.reset_all_tile_positions()
 		}
 
-		if (displaced.length !== sources_for_displaced.length) return false
-
-		let index = 0
-		for (const src of sources_for_displaced) {
-			new_order[src] = displaced[index++]
+		reset_all_tile_positions() {
+			const total = this.tile_count()
+			for (let slot = 0; slot < total; slot++) {
+				this.reset_tile_position(slot)
+			}
 		}
 
-		this.tile_indices(new_order)
-		return true
-	}
+		group_dest_slots(group: readonly number[], delta_row: number, delta_col: number) {
+			const rows = Math.max(1, this.rows())
+			const columns = Math.max(1, this.columns())
+			const dest: number[] = []
+			const set = new Set<number>()
+			for (const slot of group) {
+				const { row, col } = this.slot_coord(slot)
+				const dest_row = row + delta_row
+				const dest_col = col + delta_col
+				if (dest_row < 0 || dest_row >= rows || dest_col < 0 || dest_col >= columns) return null
+				const dest_slot = dest_row * columns + dest_col
+				if (set.has(dest_slot)) return null
+				set.add(dest_slot)
+				dest.push(dest_slot)
+			}
+			return dest
+		}
+
+		same_slots(a: readonly number[], b: readonly number[]) {
+			if (a.length !== b.length) return false
+			for (let i = 0; i < a.length; i++) {
+				if (a[i] !== b[i]) return false
+			}
+			return true
+		}
+
+		apply_group_move(group: readonly number[], dest: readonly number[]) {
+			if (dest.length !== group.length) return false
+			const order = this.tile_indices()
+			const new_order = [...order]
+			const group_set = new Set(group)
+			const dest_set = new Set(dest)
+			if (dest_set.size !== dest.length) return false
+
+			const displaced: number[] = []
+			const sources_for_displaced: number[] = []
+
+			for (let i = 0; i < group.length; i++) {
+				const src = group[i]
+				const dst = dest[i]
+				const piece = order[src]
+				const occupant = order[dst]
+				if (!group_set.has(dst)) displaced.push(occupant)
+				new_order[dst] = piece
+				if (!dest_set.has(src)) sources_for_displaced.push(src)
+			}
+
+			if (displaced.length !== sources_for_displaced.length) return false
+
+			let index = 0
+			for (const src of sources_for_displaced) {
+				new_order[src] = displaced[index++]
+			}
+
+			this.tile_indices(new_order)
+			return true
+		}
 
 		grid_template_columns() {
 			return `repeat(${Math.max(1, this.columns())}, 1fr)`
