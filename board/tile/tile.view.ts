@@ -50,6 +50,7 @@ namespace $.$$ {
 
 		limit_delta(delta: number) {
 			const max = this.drag_limit()
+			if (!Number.isFinite(max) || max <= 0) return delta
 			return Math.max(-max, Math.min(max, delta))
 		}
 
@@ -57,8 +58,9 @@ namespace $.$$ {
 			const rows = Math.max(1, this.rows())
 			const columns = Math.max(1, this.columns())
 			const min_dimension = Math.min(rows, columns)
-			if (min_dimension <= 0) return 0
+			if (min_dimension <= 0) return Number.POSITIVE_INFINITY
 			const base = Math.min(this.cell_size_px().width, this.cell_size_px().height)
+			if (!base) return Number.POSITIVE_INFINITY
 			return base * 0.8
 		}
 
