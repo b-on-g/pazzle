@@ -1528,7 +1528,7 @@ declare namespace $.$$ {
 
 declare namespace $ {
     const $bog_theme: Record<"image" | "line" | "text" | "field" | "focus" | "back" | "hover" | "card" | "current" | "special" | "control" | "shade" | "spirit", $mol_style_func<"var", unknown>>;
-    const $bog_theme_names: readonly ["$mol_theme_light", "$mol_theme_dark", "$mol_theme_upwork"];
+    const $bog_theme_names: readonly ["$mol_theme_light", "$mol_theme_dark", "$mol_theme_upwork", "$mol_theme_ainews_light", "$mol_theme_ainews_dark"];
     type $bog_theme_name = (typeof $bog_theme_names)[number];
 }
 
@@ -1541,6 +1541,8 @@ declare namespace $ {
 		themes_default( ): readonly(any)[]
 		theme( ): string
 		themes( ): ReturnType< $bog_theme_auto['themes_default'] >
+		theme_light( ): string
+		theme_dark( ): string
 		theme_next( next?: any ): any
 		theme_prev( next?: any ): any
 		theme_set( next?: any ): any
@@ -2207,8 +2209,8 @@ declare namespace $ {
 declare namespace $.$$ {
     class $bog_theme_picker extends $.$bog_theme_picker {
         theme_rows(): $.$bog_theme_picker_row[];
-        filtered_themes(): ("$mol_theme_light" | "$mol_theme_dark" | "$mol_theme_upwork")[];
-        theme_name(index: number): "$mol_theme_light" | "$mol_theme_dark" | "$mol_theme_upwork";
+        filtered_themes(): ("$mol_theme_light" | "$mol_theme_dark" | "$mol_theme_upwork" | "$mol_theme_ainews_light" | "$mol_theme_ainews_dark")[];
+        theme_name(index: number): "$mol_theme_light" | "$mol_theme_dark" | "$mol_theme_upwork" | "$mol_theme_ainews_light" | "$mol_theme_ainews_dark";
         theme_focused(index: number): boolean;
         theme_select(index: number, event?: MouseEvent): null;
         theme_hover(index: number, event?: PointerEvent): null;
