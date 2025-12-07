@@ -239,7 +239,6 @@
     "$rise"
   ],
   "dependencies": {
-    "internal": "*",
     "jsdom": "*"
   }
 }
