@@ -906,6 +906,11 @@ declare namespace $ {
 }
 
 declare namespace $ {
+    function $mol_wait_user_async(this: $): Promise<unknown>;
+    function $mol_wait_user(this: $): unknown;
+}
+
+declare namespace $ {
     class $mol_storage extends $mol_object2 {
         static native(): StorageManager;
         static persisted(next?: boolean, cache?: 'cache'): boolean;
@@ -1542,7 +1547,7 @@ declare namespace $.$$ {
 
 declare namespace $ {
     const $bog_theme: Record<"image" | "line" | "text" | "field" | "focus" | "back" | "hover" | "card" | "current" | "special" | "control" | "shade" | "spirit", $mol_style_func<"var", unknown>>;
-    const $bog_theme_names: readonly ["$mol_theme_light", "$mol_theme_dark", "$mol_theme_monefro_light", "$mol_theme_monefro_dark", "$mol_theme_upwork", "$mol_theme_ainews_light", "$mol_theme_ainews_dark"];
+    const $bog_theme_names: readonly ["$mol_theme_light", "$mol_theme_dark", "$mol_theme_monefro_light", "$mol_theme_monefro_dark", "$mol_theme_homerent_light", "$mol_theme_homerent_dark", "$mol_theme_upwork", "$mol_theme_ainews_light", "$mol_theme_ainews_dark"];
     type $bog_theme_name = (typeof $bog_theme_names)[number];
 }
 
@@ -2279,8 +2284,8 @@ declare namespace $ {
 declare namespace $.$$ {
     class $bog_theme_picker extends $.$bog_theme_picker {
         theme_rows(): $.$bog_theme_picker_row[];
-        filtered_themes(): ("$mol_theme_light" | "$mol_theme_dark" | "$mol_theme_monefro_light" | "$mol_theme_monefro_dark" | "$mol_theme_upwork" | "$mol_theme_ainews_light" | "$mol_theme_ainews_dark")[];
-        theme_name(index: number): "$mol_theme_light" | "$mol_theme_dark" | "$mol_theme_monefro_light" | "$mol_theme_monefro_dark" | "$mol_theme_upwork" | "$mol_theme_ainews_light" | "$mol_theme_ainews_dark";
+        filtered_themes(): ("$mol_theme_light" | "$mol_theme_dark" | "$mol_theme_monefro_light" | "$mol_theme_monefro_dark" | "$mol_theme_homerent_light" | "$mol_theme_homerent_dark" | "$mol_theme_upwork" | "$mol_theme_ainews_light" | "$mol_theme_ainews_dark")[];
+        theme_name(index: number): "$mol_theme_light" | "$mol_theme_dark" | "$mol_theme_monefro_light" | "$mol_theme_monefro_dark" | "$mol_theme_homerent_light" | "$mol_theme_homerent_dark" | "$mol_theme_upwork" | "$mol_theme_ainews_light" | "$mol_theme_ainews_dark";
         theme_focused(index: number): boolean;
         theme_select(index: number, event?: MouseEvent): null;
         theme_hover(index: number, event?: PointerEvent): null;
@@ -3400,7 +3405,7 @@ declare namespace $.$$ {
         sub_visible(): readonly $mol_view_content[];
         message_receive(event?: MessageEvent<[string, string]>): void;
         uri_change(event: MessageEvent<[string, string]>): void;
-        auto(): ($mol_dom_listener | Window)[];
+        auto(): (Window | $mol_dom_listener)[];
     }
 }
 
