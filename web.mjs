@@ -11393,6 +11393,7 @@ var $;
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 20,
+            background: { color: '#00000033' },
             Card: {
                 background: { color: $mol_theme.card },
                 boxShadow: `0 8px 32px #00000066`,
@@ -11414,21 +11415,10 @@ var $;
                 color: $mol_theme.shade,
             },
         });
-        $mol_style_attach('bog_pazzle_victory_anim', `
-		@keyframes bog_pazzle_victory_fade {
-			from {
-				opacity: 0;
-				backdrop-filter: blur(0);
-				background: transparent;
-			}
-			to {
-				opacity: 1;
-				backdrop-filter: blur(4px);
-				background: #00000033;
-			}
-		}
+        $mol_style_attach('bog_pazzle_victory_backdrop', `
 		[bog_pazzle_board_victory] {
-			animation: bog_pazzle_victory_fade 0.6s ease 0.8s both;
+			backdrop-filter: blur(4px);
+			-webkit-backdrop-filter: blur(4px);
 		}
 	`);
     })($$ = $.$$ || ($.$$ = {}));
@@ -11454,9 +11444,6 @@ var $;
 		grid_aspect_ratio(){
 			return "";
 		}
-		grid_gap(){
-			return "0.25rem";
-		}
 		solved(){
 			return false;
 		}
@@ -11465,8 +11452,7 @@ var $;
 			(obj.style) = () => ({
 				"gridTemplateColumns": (this.grid_template_columns()), 
 				"gridTemplateRows": (this.grid_template_rows()), 
-				"aspectRatio": (this.grid_aspect_ratio()), 
-				"gap": (this.grid_gap())
+				"aspectRatio": (this.grid_aspect_ratio())
 			});
 			(obj.attr) = () => ({"bog_pazzle_solved": (this.solved())});
 			return obj;
@@ -11962,10 +11948,12 @@ var $;
                 const uri = this.image_uri();
                 if (!uri)
                     return null;
-                const img = this.$.$mol_dom_context.document.createElement('img');
+                return $mol_wire_sync(this).image_load(uri);
+            }
+            async image_load(uri) {
+                const img = new Image();
                 img.src = uri;
-                const sync = $mol_wire_sync(img);
-                sync.decode();
+                await img.decode();
                 return { width: img.naturalWidth, height: img.naturalHeight };
             }
             grid_aspect_ratio() {
@@ -11974,20 +11962,19 @@ var $;
                     return '';
                 return `${dim.width} / ${dim.height}`;
             }
-            grid_gap() {
-                return this.solved() ? '0' : '0.25rem';
-            }
             sub() {
                 if (!this.image_present())
                     return [this.Placeholder()];
-                const children = [this.Controls(), this.Grid()];
-                if (this.solved())
-                    children.push(this.Victory());
-                return children;
+                return [this.Controls(), this.Grid()];
             }
             Grid() {
                 const grid = super.Grid();
-                grid.sub = () => this.tiles();
+                grid.sub = () => {
+                    const tiles = [...this.tiles()];
+                    if (this.solved())
+                        tiles.push(this.Victory());
+                    return tiles;
+                };
                 return grid;
             }
             Controls() {
@@ -12496,9 +12483,6 @@ var $;
         ], $bog_pazzle_board.prototype, "grid_aspect_ratio", null);
         __decorate([
             $mol_mem
-        ], $bog_pazzle_board.prototype, "grid_gap", null);
-        __decorate([
-            $mol_mem
         ], $bog_pazzle_board.prototype, "sub", null);
         __decorate([
             $mol_mem
@@ -12565,7 +12549,6 @@ var $;
             display: 'flex',
             flexDirection: 'column',
             gap: $mol_gap.block,
-            position: 'relative',
             Controls: {
                 display: 'flex',
                 alignItems: 'center',
@@ -12574,19 +12557,23 @@ var $;
             },
             Grid: {
                 display: 'grid',
+                gap: '0.25rem',
                 border: { radius: $mol_gap.round },
                 overflow: 'hidden',
                 background: { color: $mol_theme.card },
                 boxShadow: `0 0 0 1px ${$mol_theme.line}`,
                 width: '100%',
                 maxWidth: '100%',
-                transition: 'gap 0.8s ease',
+                position: 'relative',
             },
             Placeholder: {
                 color: $mol_theme.shade,
             },
         });
         $mol_style_attach('bog_pazzle_board_solved', `
+		[bog_pazzle_solved="true"] {
+			gap: 0 !important;
+		}
 		[bog_pazzle_solved="true"] [data-bog-pazzle-slot] {
 			box-shadow: none !important;
 		}
@@ -13253,11 +13240,7 @@ var $;
                 return this.$.$mol_state_arg.value('mode') ?? '';
             }
             body_content() {
-                if (this.mode() === 'play') {
-                    if (!this.image_uri()) {
-                        this.$.$mol_state_arg.value('mode', null);
-                        return [this.Layout()];
-                    }
+                if (this.mode() === 'play' && this.image_uri()) {
                     return [this.Play()];
                 }
                 return [this.Layout()];

@@ -4764,7 +4764,6 @@ declare namespace $ {
 			'gridTemplateColumns': ReturnType< $bog_pazzle_board['grid_template_columns'] >,
 			'gridTemplateRows': ReturnType< $bog_pazzle_board['grid_template_rows'] >,
 			'aspectRatio': ReturnType< $bog_pazzle_board['grid_aspect_ratio'] >,
-			'gap': ReturnType< $bog_pazzle_board['grid_gap'] >,
 		}) 
 		,
 		ReturnType< $mol_view['style'] >
@@ -4787,7 +4786,6 @@ declare namespace $ {
 		grid_template_columns( ): string
 		grid_template_rows( ): string
 		grid_aspect_ratio( ): string
-		grid_gap( ): string
 		solved( ): boolean
 		Grid( ): $mol_view
 		moves( ): number
@@ -4809,8 +4807,11 @@ declare namespace $.$$ {
             width: number;
             height: number;
         } | null;
+        image_load(uri: string): Promise<{
+            width: number;
+            height: number;
+        }>;
         grid_aspect_ratio(): string;
-        grid_gap(): "0" | "0.25rem";
         sub(): $mol_view[];
         Grid(): $mol_view;
         Controls(): $mol_row;
@@ -5232,7 +5233,7 @@ declare namespace $.$$ {
         shuffle_enabled(): boolean;
         play_moves(): number;
         mode(): string;
-        body_content(): $bog_pazzle_layout[] | $.$bog_pazzle_play[];
+        body_content(): $.$bog_pazzle_play[] | $bog_pazzle_layout[];
     }
 }
 

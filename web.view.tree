@@ -798,7 +798,6 @@ $bog_pazzle_board $mol_view
 				gridTemplateColumns <= grid_template_columns \
 				gridTemplateRows <= grid_template_rows \
 				aspectRatio <= grid_aspect_ratio \
-				gap <= grid_gap \0.25rem
 			attr *
 				bog_pazzle_solved <= solved false
 	Victory $bog_pazzle_board_victory
