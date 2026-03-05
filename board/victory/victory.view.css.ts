@@ -9,6 +9,7 @@ namespace $.$$ {
 		alignItems: 'center',
 		justifyContent: 'center',
 		zIndex: 20,
+		background: { color: '#00000033' },
 
 		Card: {
 			background: { color: $mol_theme.card },
@@ -34,21 +35,10 @@ namespace $.$$ {
 		},
 	})
 
-	$mol_style_attach('bog_pazzle_victory_anim', `
-		@keyframes bog_pazzle_victory_fade {
-			from {
-				opacity: 0;
-				backdrop-filter: blur(0);
-				background: transparent;
-			}
-			to {
-				opacity: 1;
-				backdrop-filter: blur(4px);
-				background: #00000033;
-			}
-		}
+	$mol_style_attach('bog_pazzle_victory_backdrop', `
 		[bog_pazzle_board_victory] {
-			animation: bog_pazzle_victory_fade 0.6s ease 0.8s both;
+			backdrop-filter: blur(4px);
+			-webkit-backdrop-filter: blur(4px);
 		}
 	`)
 }

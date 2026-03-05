@@ -37,11 +37,7 @@ namespace $.$$ {
 
 		@$mol_mem
 		body_content() {
-			if (this.mode() === 'play') {
-				if (!this.image_uri()) {
-					this.$.$mol_state_arg.value('mode', null)
-					return [this.Layout()]
-				}
+			if (this.mode() === 'play' && this.image_uri()) {
 				return [this.Play()]
 			}
 			return [this.Layout()]

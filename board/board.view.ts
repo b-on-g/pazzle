@@ -4,10 +4,13 @@ namespace $.$$ {
 		image_dimensions() {
 			const uri = this.image_uri()
 			if (!uri) return null
-			const img = this.$.$mol_dom_context.document.createElement('img')
+			return $mol_wire_sync(this).image_load(uri)
+		}
+
+		async image_load(uri: string) {
+			const img = new Image()
 			img.src = uri
-			const sync = $mol_wire_sync(img)
-			sync.decode()
+			await img.decode()
 			return { width: img.naturalWidth, height: img.naturalHeight }
 		}
 
@@ -19,21 +22,18 @@ namespace $.$$ {
 		}
 
 		@$mol_mem
-		grid_gap() {
-			return this.solved() ? '0' : '0.25rem'
-		}
-
-		@$mol_mem
 		override sub() {
 			if (!this.image_present()) return [this.Placeholder()]
-			const children: $mol_view[] = [this.Controls(), this.Grid()]
-			if (this.solved()) children.push(this.Victory())
-			return children
+			return [this.Controls(), this.Grid()]
 		}
 
 		Grid() {
 			const grid = super.Grid()
-			grid.sub = () => this.tiles()
+			grid.sub = () => {
+				const tiles = [...this.tiles()]
+				if (this.solved()) tiles.push(this.Victory())
+				return tiles
+			}
 			return grid
 		}
 
