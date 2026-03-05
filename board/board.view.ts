@@ -1,9 +1,34 @@
 namespace $.$$ {
 	export class $bog_pazzle_board extends $.$bog_pazzle_board {
 		@$mol_mem
+		image_dimensions() {
+			const uri = this.image_uri()
+			if (!uri) return null
+			const img = this.$.$mol_dom_context.document.createElement('img')
+			img.src = uri
+			const sync = $mol_wire_sync(img)
+			sync.decode()
+			return { width: img.naturalWidth, height: img.naturalHeight }
+		}
+
+		@$mol_mem
+		grid_aspect_ratio() {
+			const dim = this.image_dimensions()
+			if (!dim) return ''
+			return `${dim.width} / ${dim.height}`
+		}
+
+		@$mol_mem
+		grid_gap() {
+			return this.solved() ? '0' : '0.25rem'
+		}
+
+		@$mol_mem
 		override sub() {
 			if (!this.image_present()) return [this.Placeholder()]
-			return [this.Controls(), this.Grid()]
+			const children: $mol_view[] = [this.Controls(), this.Grid()]
+			if (this.solved()) children.push(this.Victory())
+			return children
 		}
 
 		Grid() {

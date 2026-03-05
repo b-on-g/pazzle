@@ -1,6 +1,5 @@
 namespace $.$$ {
 	$mol_style_define($bog_pazzle_board_tile, {
-		minHeight: '4rem',
 		display: 'flex',
 		alignItems: 'center',
 		justifyContent: 'center',

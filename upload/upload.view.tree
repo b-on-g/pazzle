@@ -1,24 +1,23 @@
 $bog_pazzle_upload $mol_list
-	image_uri \
-	rows_count 1
-	columns_count 1
-	show_numbers true
-	shuffle_enabled true
+	Image_control $bog_pazzle_upload_image
+	Settings $bog_pazzle_settings
+	Preview $bog_pazzle_board
 	rows /
 		<= Intro $mol_text
 			text \Загрузите изображение и настройте параметры пазла.
 		<= Image $mol_labeler
 			Label <= Image_label $mol_text
 				text \Изображение пазла
-			Content <= Image_control $bog_pazzle_upload_image
+			Content <= Image_control
 		<= Settings_title $mol_text
 			text \Настройки пазла
-		<= Settings $bog_pazzle_settings
+		<= Settings
 		<= Preview_title $mol_text
 			text \Предпросмотр
-		<= Preview $bog_pazzle_board
-			image_uri <= image_uri
-			rows <= rows_count
-			columns <= columns_count
-			show_numbers <= show_numbers
-			shuffle_enabled <= shuffle_enabled
+		<= Preview
+		<= Start_link $mol_link
+			arg *
+				mode \play
+			sub /
+				<= Start_label $mol_text
+					text \▶ Начать игру

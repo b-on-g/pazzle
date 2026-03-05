@@ -1,8 +1,9 @@
 $bog_pazzle_layout $mol_view
+	Upload $bog_pazzle_upload
 	sub /
 		<= Content $mol_row
 			sub /
 				<= Menu $bog_pazzle_menu
 				<= Workspace $mol_view
 					sub /
-						<= Upload $bog_pazzle_upload
+						<= Upload

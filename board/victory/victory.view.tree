@@ -1,0 +1,9 @@
+$bog_pazzle_board_victory $mol_view
+	moves 0
+	sub /
+		<= Card $mol_list
+			rows /
+				<= Title $mol_text
+					text \Пазл собран!
+				<= Stats $mol_text
+					text <= stats_text \

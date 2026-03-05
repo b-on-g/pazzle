@@ -1,0 +1,15 @@
+$bog_pazzle_play $mol_view
+	Board $bog_pazzle_board
+	moves 0
+	sub /
+		<= Toolbar $mol_row
+			sub /
+				<= Back $mol_link
+					arg *
+						mode null
+					sub /
+						<= Back_label $mol_text
+							text \← Назад
+				<= Moves_text $mol_text
+					text <= moves_label \
+		<= Board
