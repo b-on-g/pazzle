@@ -2491,6 +2491,7 @@ declare namespace $ {
 
 	export class $bog_pazzle_upload_image extends $mol_button_open {
 		title( ): string
+		image_data( next?: any ): any
 		image_uri( ): string
 	}
 	
@@ -2499,17 +2500,13 @@ declare namespace $ {
 //# sourceMappingURL=image.view.tree.d.ts.map
 declare namespace $.$$ {
     class $bog_pazzle_upload_image extends $.$bog_pazzle_upload_image {
-        private _image_data;
-        private _image_uri;
+        image_data(next?: Uint8Array | null): Uint8Array<ArrayBufferLike> | null;
         accept(): string;
         multiple(): boolean;
-        image_data(next?: Uint8Array | null): Uint8Array<ArrayBufferLike> | null;
-        image_uri(): string;
         sub(): ($.$mol_button_open_native | $mol_image | $mol_icon_upload)[];
         Image(): $mol_image;
         Placeholder(): $mol_icon_upload;
         files(next?: readonly File[]): never[];
-        destructor(): void;
     }
 }
 
@@ -5144,57 +5141,67 @@ declare namespace $ {
 		,
 		ReturnType< $bog_theme_toggle['theme_auto'] >
 	>
-	type $bog_pazzle_upload__Image_control_bog_pazzle_2 = $mol_type_enforce<
+	type $bog_pazzle_upload_image__image_data_bog_pazzle_2 = $mol_type_enforce<
+		ReturnType< $bog_pazzle['image_data'] >
+		,
+		ReturnType< $bog_pazzle_upload_image['image_data'] >
+	>
+	type $bog_pazzle_upload_image__image_uri_bog_pazzle_3 = $mol_type_enforce<
+		ReturnType< $bog_pazzle['image_uri'] >
+		,
+		ReturnType< $bog_pazzle_upload_image['image_uri'] >
+	>
+	type $bog_pazzle_upload__Image_control_bog_pazzle_4 = $mol_type_enforce<
 		ReturnType< $bog_pazzle['Image_control'] >
 		,
 		ReturnType< $bog_pazzle_upload['Image_control'] >
 	>
-	type $bog_pazzle_upload__Settings_bog_pazzle_3 = $mol_type_enforce<
+	type $bog_pazzle_upload__Settings_bog_pazzle_5 = $mol_type_enforce<
 		ReturnType< $bog_pazzle['Settings'] >
 		,
 		ReturnType< $bog_pazzle_upload['Settings'] >
 	>
-	type $bog_pazzle_upload__Preview_bog_pazzle_4 = $mol_type_enforce<
+	type $bog_pazzle_upload__Preview_bog_pazzle_6 = $mol_type_enforce<
 		ReturnType< $bog_pazzle['Board'] >
 		,
 		ReturnType< $bog_pazzle_upload['Preview'] >
 	>
-	type $bog_pazzle_board__image_uri_bog_pazzle_5 = $mol_type_enforce<
+	type $bog_pazzle_board__image_uri_bog_pazzle_7 = $mol_type_enforce<
 		ReturnType< $bog_pazzle['image_uri'] >
 		,
 		ReturnType< $bog_pazzle_board['image_uri'] >
 	>
-	type $bog_pazzle_board__rows_bog_pazzle_6 = $mol_type_enforce<
+	type $bog_pazzle_board__rows_bog_pazzle_8 = $mol_type_enforce<
 		ReturnType< $bog_pazzle['rows_count'] >
 		,
 		ReturnType< $bog_pazzle_board['rows'] >
 	>
-	type $bog_pazzle_board__columns_bog_pazzle_7 = $mol_type_enforce<
+	type $bog_pazzle_board__columns_bog_pazzle_9 = $mol_type_enforce<
 		ReturnType< $bog_pazzle['columns_count'] >
 		,
 		ReturnType< $bog_pazzle_board['columns'] >
 	>
-	type $bog_pazzle_board__show_numbers_bog_pazzle_8 = $mol_type_enforce<
+	type $bog_pazzle_board__show_numbers_bog_pazzle_10 = $mol_type_enforce<
 		ReturnType< $bog_pazzle['show_numbers'] >
 		,
 		ReturnType< $bog_pazzle_board['show_numbers'] >
 	>
-	type $bog_pazzle_board__shuffle_enabled_bog_pazzle_9 = $mol_type_enforce<
+	type $bog_pazzle_board__shuffle_enabled_bog_pazzle_11 = $mol_type_enforce<
 		ReturnType< $bog_pazzle['shuffle_enabled'] >
 		,
 		ReturnType< $bog_pazzle_board['shuffle_enabled'] >
 	>
-	type $bog_pazzle_layout__Upload_bog_pazzle_10 = $mol_type_enforce<
+	type $bog_pazzle_layout__Upload_bog_pazzle_12 = $mol_type_enforce<
 		ReturnType< $bog_pazzle['Upload'] >
 		,
 		ReturnType< $bog_pazzle_layout['Upload'] >
 	>
-	type $bog_pazzle_play__Board_bog_pazzle_11 = $mol_type_enforce<
+	type $bog_pazzle_play__Board_bog_pazzle_13 = $mol_type_enforce<
 		ReturnType< $bog_pazzle['Board'] >
 		,
 		ReturnType< $bog_pazzle_play['Board'] >
 	>
-	type $bog_pazzle_play__moves_bog_pazzle_12 = $mol_type_enforce<
+	type $bog_pazzle_play__moves_bog_pazzle_14 = $mol_type_enforce<
 		ReturnType< $bog_pazzle['play_moves'] >
 		,
 		ReturnType< $bog_pazzle_play['moves'] >
@@ -5211,6 +5218,7 @@ declare namespace $ {
 		plugins( ): readonly(any)[]
 		head( ): readonly(any)[]
 		body( ): ReturnType< $bog_pazzle['body_content'] >
+		image_data( next?: any ): any
 		image_uri( ): string
 		rows_count( ): number
 		columns_count( ): number
@@ -5226,6 +5234,8 @@ declare namespace $ {
 //# sourceMappingURL=pazzle.view.tree.d.ts.map
 declare namespace $.$$ {
     class $bog_pazzle extends $.$bog_pazzle {
+        image_data(next?: Uint8Array | null): Uint8Array<ArrayBufferLike> | null;
+        private _blob_uri;
         image_uri(): string;
         rows_count(): number;
         columns_count(): number;

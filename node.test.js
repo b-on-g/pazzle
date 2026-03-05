@@ -7690,10 +7690,15 @@ var $;
 		title(){
 			return "Загрузить изображение";
 		}
+		image_data(next){
+			if(next !== undefined) return next;
+			return null;
+		}
 		image_uri(){
 			return "";
 		}
 	};
+	($mol_mem(($.$bog_pazzle_upload_image.prototype), "image_data"));
 
 
 ;
@@ -7808,42 +7813,19 @@ var $;
     var $$;
     (function ($$) {
         class $bog_pazzle_upload_image extends $.$bog_pazzle_upload_image {
-            _image_data = null;
-            _image_uri = null;
+            image_data(next) {
+                if (next !== undefined)
+                    return next;
+                return null;
+            }
             accept() {
                 return 'image/*';
             }
             multiple() {
                 return false;
             }
-            image_data(next) {
-                if (next !== undefined) {
-                    if (this._image_uri) {
-                        try {
-                            URL.revokeObjectURL(this._image_uri);
-                        }
-                        catch { }
-                        this._image_uri = null;
-                    }
-                    this._image_data = next ?? null;
-                }
-                return this._image_data ?? null;
-            }
-            image_uri() {
-                const data = this.image_data();
-                if (!data)
-                    return '';
-                if (!this._image_uri) {
-                    const buffer = data.buffer instanceof ArrayBuffer
-                        ? data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)
-                        : data.slice().buffer;
-                    const blob = new Blob([buffer], { type: 'image/*' });
-                    this._image_uri = URL.createObjectURL(blob);
-                }
-                return this._image_uri;
-            }
             sub() {
-                const has_image = !!this.image_data();
+                const has_image = !!this.image_uri();
                 const view = has_image ? this.Image() : this.Placeholder();
                 return [view, this.Native()];
             }
@@ -7866,24 +7848,10 @@ var $;
                 }
                 return [];
             }
-            destructor() {
-                super.destructor();
-                if (this._image_uri) {
-                    try {
-                        URL.revokeObjectURL(this._image_uri);
-                    }
-                    catch { }
-                    this._image_uri = null;
-                }
-                this._image_data = null;
-            }
         }
         __decorate([
             $mol_mem
         ], $bog_pazzle_upload_image.prototype, "image_data", null);
-        __decorate([
-            $mol_mem
-        ], $bog_pazzle_upload_image.prototype, "image_uri", null);
         __decorate([
             $mol_action
         ], $bog_pazzle_upload_image.prototype, "files", null);
@@ -12396,10 +12364,21 @@ var $;
                 tile.slot_index(slot_index);
                 tile.label(this.show_numbers() ? String(piece_index + 1) : '');
                 tile.selected(this.tile_marked(slot_index));
-                tile.event_click(() => this.tile_pick(slot_index));
-                tile.on_drag_start((event) => this.tile_drag_start(slot_index, event));
-                tile.on_drag((event) => this.tile_drag_move(slot_index, event));
-                tile.on_drag_end((event) => this.tile_drag_end(slot_index, event));
+                tile.on_drag_start = ((event) => {
+                    if (event !== undefined)
+                        this.tile_drag_start(slot_index, event);
+                    return null;
+                });
+                tile.on_drag = ((event) => {
+                    if (event !== undefined)
+                        this.tile_drag_move(slot_index, event);
+                    return null;
+                });
+                tile.on_drag_end = ((event) => {
+                    if (event !== undefined)
+                        this.tile_drag_end(slot_index, event);
+                    return null;
+                });
                 const group = this.tile_groups().get(slot_index) ?? [slot_index];
                 const synced = group
                     .filter(member => member !== slot_index)
@@ -12576,7 +12555,6 @@ var $;
                 this.drag_target_slots(group);
                 this.drag_source_index(slot_index);
                 this.drag_hover_index(slot_index);
-                this.selected_index(slot_index);
             }
             tile_drag_move(slot_index, event) {
                 const source = this.drag_source_index();
@@ -12613,6 +12591,15 @@ var $;
                             [order[source], order[target]] = [order[target], order[source]];
                             this.tile_indices(order);
                             moved = true;
+                        }
+                        else {
+                            this.reset_all_tile_positions();
+                            this.drag_source_index(null);
+                            this.drag_hover_index(null);
+                            this.drag_group_slots(null);
+                            this.drag_target_slots(null);
+                            this.tile_pick(source);
+                            return;
                         }
                     }
                     if (moved)
@@ -13359,6 +13346,8 @@ var $;
 		}
 		Image_control(){
 			const obj = new this.$.$bog_pazzle_upload_image();
+			(obj.image_data) = (next) => ((this.image_data(next)));
+			(obj.image_uri) = () => ((this.image_uri()));
 			return obj;
 		}
 		Settings(){
@@ -13383,6 +13372,10 @@ var $;
 		}
 		body(){
 			return (this.body_content());
+		}
+		image_data(next){
+			if(next !== undefined) return next;
+			return null;
 		}
 		image_uri(){
 			return "";
@@ -13425,6 +13418,7 @@ var $;
 	($mol_mem(($.$bog_pazzle.prototype), "Image_control"));
 	($mol_mem(($.$bog_pazzle.prototype), "Settings"));
 	($mol_mem(($.$bog_pazzle.prototype), "Upload"));
+	($mol_mem(($.$bog_pazzle.prototype), "image_data"));
 	($mol_mem(($.$bog_pazzle.prototype), "Board"));
 	($mol_mem(($.$bog_pazzle.prototype), "Layout"));
 	($mol_mem(($.$bog_pazzle.prototype), "Play"));
@@ -13460,8 +13454,29 @@ var $;
     var $$;
     (function ($$) {
         class $bog_pazzle extends $.$bog_pazzle {
+            image_data(next) {
+                if (next !== undefined)
+                    return next;
+                return null;
+            }
+            _blob_uri = null;
             image_uri() {
-                return this.Image_control().image_uri();
+                const data = this.image_data();
+                if (!data) {
+                    if (this._blob_uri) {
+                        URL.revokeObjectURL(this._blob_uri);
+                        this._blob_uri = null;
+                    }
+                    return '';
+                }
+                if (!this._blob_uri) {
+                    const buffer = data.buffer instanceof ArrayBuffer
+                        ? data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)
+                        : data.slice().buffer;
+                    const blob = new Blob([buffer], { type: 'image/*' });
+                    this._blob_uri = URL.createObjectURL(blob);
+                }
+                return this._blob_uri;
             }
             rows_count() {
                 return this.Settings().rows_count();
@@ -13488,6 +13503,9 @@ var $;
                 return [this.Layout()];
             }
         }
+        __decorate([
+            $mol_mem
+        ], $bog_pazzle.prototype, "image_data", null);
         __decorate([
             $mol_mem
         ], $bog_pazzle.prototype, "image_uri", null);
