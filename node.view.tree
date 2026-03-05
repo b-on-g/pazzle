@@ -267,6 +267,47 @@ $bog_theme_toggle $mol_pop
 			theme_auto <= theme_auto
 			close? <=> picker_close? null
 
+$mol_icon_upload $mol_icon path \M9,16V10H5L12,3L19,10H15V16H9M5,20V18H19V20H5Z
+
+$mol_button_open $mol_button_minor
+	sub /
+		<= Icon $mol_icon_upload
+		<= Native $mol_button_open_native
+			files? <=> files_handled? <=> files? /File
+			accept <= accept \
+			multiple <= multiple true
+
+$mol_button_open_native $mol_view
+	dom_name \input
+	files? /File
+	attr *
+		type \file
+		accept <= accept \
+		multiple <= multiple true
+	event *
+		change?next <=> picked?next null
+
+$bog_pazzle_upload_image $mol_button_open
+	title \Загрузить изображение
+	image_uri \
+
+$mol_image $mol_view
+	dom_name \img
+	attr *any
+		^
+		src <= uri \
+		title <= hint
+		alt <= title \
+		loading <= loading \lazy
+		decoding <= decoding \async
+		crossOrigin <= cors null
+		width <= natural_width 0
+		height <= natural_height 0
+	event *any
+		load? <=> load? null
+	minimal_width 16
+	minimal_height 16
+
 $mol_paragraph $mol_view
 	line_height 24
 	letter_width 7
@@ -464,23 +505,6 @@ $mol_link $mol_view
 		^
 		click?event <=> click?event <=> event_click?event null
 
-$mol_image $mol_view
-	dom_name \img
-	attr *any
-		^
-		src <= uri \
-		title <= hint
-		alt <= title \
-		loading <= loading \lazy
-		decoding <= decoding \async
-		crossOrigin <= cors null
-		width <= natural_width 0
-		height <= natural_height 0
-	event *any
-		load? <=> load? null
-	minimal_width 16
-	minimal_height 16
-
 $mol_link_iconed $mol_link
 	sub /
 		<= Icon $mol_image
@@ -674,74 +698,6 @@ $mol_text_span $mol_paragraph
 		^
 		mol_text_type <= type \
 
-$mol_button_major $mol_button_minor
-	theme \$mol_theme_base
-
-$mol_text_list $mol_text
-	auto_scroll null
-	attr *
-		^
-		mol_text_list_type <= type \
-	Paragraph* $mol_text_list_item
-		index <= item_index*
-		sub <= block_content*
-
-$mol_text_list_item $mol_paragraph
-	attr *
-		^
-		mol_text_list_item_index <= index 0
-
-$bog_pazzle_menu $mol_list
-	rows /
-		<= Title $mol_text
-			text \Меню
-		<= New_game $mol_button_major
-			sub /
-				<= New_game_label $mol_text
-					text \Новый пазл
-		<= Saved $mol_button_minor
-			sub /
-				<= Saved_label $mol_text
-					text \Мои сохранения
-		<= Help $mol_button_minor
-			sub /
-				<= Help_label $mol_text
-					text \Как играть
-
-$mol_icon_upload $mol_icon path \M9,16V10H5L12,3L19,10H15V16H9M5,20V18H19V20H5Z
-
-$mol_button_open $mol_button_minor
-	sub /
-		<= Icon $mol_icon_upload
-		<= Native $mol_button_open_native
-			files? <=> files_handled? <=> files? /File
-			accept <= accept \
-			multiple <= multiple true
-
-$mol_button_open_native $mol_view
-	dom_name \input
-	files? /File
-	attr *
-		type \file
-		accept <= accept \
-		multiple <= multiple true
-	event *
-		change?next <=> picked?next null
-
-$bog_pazzle_upload_image $mol_button_open
-	title \Загрузить изображение
-	image_uri \
-
-$mol_labeler $mol_list
-	rows /
-		<= Label $mol_view
-			minimal_height 32
-			sub <= label /$mol_view_content
-				<= title
-		<= Content $mol_view
-			minimal_height 24
-			sub <= content /
-
 $mol_icon_chevron_left $mol_icon path \M15.41,16.58L10.83,12L15.41,7.41L14,6L8,12L14,18L15.41,16.58Z
 
 $mol_icon_chevron_right $mol_icon path \M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z
@@ -780,6 +736,16 @@ $mol_number $mol_view
 			enabled <= inc_enabled <= enabled
 			sub / <= inc_icon $mol_icon_chevron_right
 
+$mol_labeler $mol_list
+	rows /
+		<= Label $mol_view
+			minimal_height 32
+			sub <= label /$mol_view_content
+				<= title
+		<= Content $mol_view
+			minimal_height 24
+			sub <= content /
+
 $bog_pazzle_settings $mol_list
 	rows /
 		<= Rows_labeler $mol_labeler
@@ -807,6 +773,16 @@ $bog_pazzle_settings $mol_list
 
 $mol_row $mol_view
 
+$bog_pazzle_board_victory $mol_view
+	moves 0
+	sub /
+		<= Card $mol_list
+			rows /
+				<= Title $mol_text
+					text \Пазл собран!
+				<= Stats $mol_text
+					text <= stats_text \
+
 $bog_pazzle_board $mol_view
 	image_uri \
 	rows 1
@@ -821,6 +797,12 @@ $bog_pazzle_board $mol_view
 			style *
 				gridTemplateColumns <= grid_template_columns \
 				gridTemplateRows <= grid_template_rows \
+				aspectRatio <= grid_aspect_ratio \
+				gap <= grid_gap \0.25rem
+			attr *
+				bog_pazzle_solved <= solved false
+	Victory $bog_pazzle_board_victory
+		moves <= moves 0
 
 $rise_drag $mol_plugin
 	x? 0
@@ -883,39 +865,89 @@ $bog_pazzle_board_tile $rise_drag_view
 		<= Number $mol_text
 			text <= label \
 
+$mol_text_list $mol_text
+	auto_scroll null
+	attr *
+		^
+		mol_text_list_type <= type \
+	Paragraph* $mol_text_list_item
+		index <= item_index*
+		sub <= block_content*
+
+$mol_text_list_item $mol_paragraph
+	attr *
+		^
+		mol_text_list_item_index <= index 0
+
 $bog_pazzle_upload $mol_list
-	image_uri \
-	rows_count 1
-	columns_count 1
-	show_numbers true
-	shuffle_enabled true
+	Image_control $bog_pazzle_upload_image
+	Settings $bog_pazzle_settings
+	Preview $bog_pazzle_board
 	rows /
 		<= Intro $mol_text
 			text \Загрузите изображение и настройте параметры пазла.
 		<= Image $mol_labeler
 			Label <= Image_label $mol_text
 				text \Изображение пазла
-			Content <= Image_control $bog_pazzle_upload_image
+			Content <= Image_control
 		<= Settings_title $mol_text
 			text \Настройки пазла
-		<= Settings $bog_pazzle_settings
+		<= Settings
 		<= Preview_title $mol_text
 			text \Предпросмотр
-		<= Preview $bog_pazzle_board
-			image_uri <= image_uri
-			rows <= rows_count
-			columns <= columns_count
-			show_numbers <= show_numbers
-			shuffle_enabled <= shuffle_enabled
+		<= Preview
+		<= Start_link $mol_link
+			arg *
+				mode \play
+			sub /
+				<= Start_label $mol_text
+					text \▶ Начать игру
+
+$mol_button_major $mol_button_minor
+	theme \$mol_theme_base
+
+$bog_pazzle_menu $mol_list
+	rows /
+		<= Title $mol_text
+			text \Меню
+		<= New_game $mol_button_major
+			sub /
+				<= New_game_label $mol_text
+					text \Новый пазл
+		<= Saved $mol_button_minor
+			sub /
+				<= Saved_label $mol_text
+					text \Мои сохранения
+		<= Help $mol_button_minor
+			sub /
+				<= Help_label $mol_text
+					text \Как играть
 
 $bog_pazzle_layout $mol_view
+	Upload $bog_pazzle_upload
 	sub /
 		<= Content $mol_row
 			sub /
 				<= Menu $bog_pazzle_menu
 				<= Workspace $mol_view
 					sub /
-						<= Upload $bog_pazzle_upload
+						<= Upload
+
+$bog_pazzle_play $mol_view
+	Board $bog_pazzle_board
+	moves 0
+	sub /
+		<= Toolbar $mol_row
+			sub /
+				<= Back $mol_link
+					arg *
+						mode null
+					sub /
+						<= Back_label $mol_text
+							text \← Назад
+				<= Moves_text $mol_text
+					text <= moves_label \
+		<= Board
 
 $bog_pazzle $mol_page
 	plugins /
@@ -923,6 +955,24 @@ $bog_pazzle $mol_page
 	head /
 		<= title \Pazzle
 		<= Theme_toggle $bog_theme_toggle
-			theme_auto <= Theme 
-	body /
-		<= Layout $bog_pazzle_layout
+			theme_auto <= Theme
+	body <= body_content /
+	image_uri \
+	rows_count 4
+	columns_count 4
+	show_numbers true
+	shuffle_enabled true
+	Board $bog_pazzle_board
+		image_uri <= image_uri
+		rows <= rows_count
+		columns <= columns_count
+		show_numbers <= show_numbers
+		shuffle_enabled <= shuffle_enabled
+	Layout $bog_pazzle_layout
+		Upload <= Upload $bog_pazzle_upload
+			Image_control <= Image_control $bog_pazzle_upload_image
+			Settings <= Settings $bog_pazzle_settings
+			Preview <= Board
+	Play $bog_pazzle_play
+		Board <= Board
+		moves <= play_moves 0

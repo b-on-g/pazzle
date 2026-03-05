@@ -15,13 +15,6 @@ declare namespace $ {
 }
 
 declare namespace $ {
-    function $mol_offline(): void;
-}
-
-declare namespace $ {
-}
-
-declare namespace $ {
     var $mol_dom_context: typeof globalThis;
 }
 
@@ -1552,7 +1545,7 @@ declare namespace $.$$ {
 
 declare namespace $ {
     const $bog_theme: Record<"image" | "line" | "text" | "field" | "focus" | "background" | "back" | "hover" | "card" | "current" | "special" | "control" | "shade" | "spirit", $mol_style_func<"var", unknown>>;
-    const $bog_theme_names: readonly ["$mol_theme_giper_smash_dark", "$mol_theme_giper_smash_light", "$mol_theme_light", "$mol_theme_dark", "$mol_theme_monefro_light", "$mol_theme_monefro_dark", "$mol_theme_homerent_light", "$mol_theme_homerent_dark", "$mol_theme_upwork", "$mol_theme_ainews_light", "$mol_theme_ainews_dark"];
+    const $bog_theme_names: readonly ["$mol_theme_giper_smash_dark", "$mol_theme_giper_smash_light", "$mol_theme_light", "$mol_theme_dark", "$mol_theme_monefro_light", "$mol_theme_monefro_dark", "$mol_theme_homerent_light", "$mol_theme_homerent_dark", "$mol_theme_upwork", "$mol_theme_ainews_light", "$mol_theme_ainews_dark", "$mol_theme_calm_dark", "$mol_theme_calm_light"];
     type $bog_theme_name = (typeof $bog_theme_names)[number];
 }
 
@@ -2289,8 +2282,8 @@ declare namespace $ {
 declare namespace $.$$ {
     class $bog_theme_picker extends $.$bog_theme_picker {
         theme_rows(): $.$bog_theme_picker_row[];
-        filtered_themes(): ("$mol_theme_giper_smash_dark" | "$mol_theme_giper_smash_light" | "$mol_theme_light" | "$mol_theme_dark" | "$mol_theme_monefro_light" | "$mol_theme_monefro_dark" | "$mol_theme_homerent_light" | "$mol_theme_homerent_dark" | "$mol_theme_upwork" | "$mol_theme_ainews_light" | "$mol_theme_ainews_dark")[];
-        theme_name(index: number): "$mol_theme_giper_smash_dark" | "$mol_theme_giper_smash_light" | "$mol_theme_light" | "$mol_theme_dark" | "$mol_theme_monefro_light" | "$mol_theme_monefro_dark" | "$mol_theme_homerent_light" | "$mol_theme_homerent_dark" | "$mol_theme_upwork" | "$mol_theme_ainews_light" | "$mol_theme_ainews_dark";
+        filtered_themes(): ("$mol_theme_giper_smash_dark" | "$mol_theme_giper_smash_light" | "$mol_theme_light" | "$mol_theme_dark" | "$mol_theme_monefro_light" | "$mol_theme_monefro_dark" | "$mol_theme_homerent_light" | "$mol_theme_homerent_dark" | "$mol_theme_upwork" | "$mol_theme_ainews_light" | "$mol_theme_ainews_dark" | "$mol_theme_calm_dark" | "$mol_theme_calm_light")[];
+        theme_name(index: number): "$mol_theme_giper_smash_dark" | "$mol_theme_giper_smash_light" | "$mol_theme_light" | "$mol_theme_dark" | "$mol_theme_monefro_light" | "$mol_theme_monefro_dark" | "$mol_theme_homerent_light" | "$mol_theme_homerent_dark" | "$mol_theme_upwork" | "$mol_theme_ainews_light" | "$mol_theme_ainews_dark" | "$mol_theme_calm_dark" | "$mol_theme_calm_light";
         theme_focused(index: number): boolean;
         theme_select(index: number, event?: MouseEvent): null;
         theme_hover(index: number, event?: PointerEvent): null;
@@ -2388,6 +2381,135 @@ declare namespace $.$$ {
         private on_long_press;
         picker_close(): void;
         backdrop_click(event?: MouseEvent): null;
+    }
+}
+
+declare namespace $.$$ {
+}
+
+declare namespace $ {
+
+	export class $mol_icon_upload extends $mol_icon {
+		path( ): string
+	}
+	
+}
+
+//# sourceMappingURL=upload.view.tree.d.ts.map
+declare namespace $ {
+
+	type $mol_button_open_native__files_mol_button_open_1 = $mol_type_enforce<
+		ReturnType< $mol_button_open['files_handled'] >
+		,
+		ReturnType< $mol_button_open_native['files'] >
+	>
+	type $mol_button_open_native__accept_mol_button_open_2 = $mol_type_enforce<
+		ReturnType< $mol_button_open['accept'] >
+		,
+		ReturnType< $mol_button_open_native['accept'] >
+	>
+	type $mol_button_open_native__multiple_mol_button_open_3 = $mol_type_enforce<
+		ReturnType< $mol_button_open['multiple'] >
+		,
+		ReturnType< $mol_button_open_native['multiple'] >
+	>
+	export class $mol_button_open extends $mol_button_minor {
+		Icon( ): $mol_icon_upload
+		files( next?: readonly(File)[] ): readonly(File)[]
+		files_handled( next?: ReturnType< $mol_button_open['files'] > ): ReturnType< $mol_button_open['files'] >
+		accept( ): string
+		multiple( ): boolean
+		Native( ): $mol_button_open_native
+		sub( ): readonly(any)[]
+	}
+	
+	export class $mol_button_open_native extends $mol_view {
+		accept( ): string
+		multiple( ): boolean
+		picked( next?: any ): any
+		dom_name( ): string
+		files( next?: readonly(File)[] ): readonly(File)[]
+		attr( ): ({ 
+			'type': string,
+			'accept': ReturnType< $mol_button_open_native['accept'] >,
+			'multiple': ReturnType< $mol_button_open_native['multiple'] >,
+		}) 
+		event( ): ({ 
+			change( next?: ReturnType< $mol_button_open_native['picked'] > ): ReturnType< $mol_button_open_native['picked'] >,
+		}) 
+	}
+	
+}
+
+//# sourceMappingURL=open.view.tree.d.ts.map
+declare namespace $.$$ {
+    class $mol_button_open extends $.$mol_button_open {
+        files_handled(next?: readonly File[]): readonly File[];
+    }
+    class $mol_button_open_native extends $.$mol_button_open_native {
+        dom_node(): HTMLInputElement;
+        picked(): void;
+    }
+}
+
+declare namespace $ {
+}
+
+declare namespace $ {
+
+	export class $mol_image extends $mol_view {
+		uri( ): string
+		title( ): string
+		loading( ): string
+		decoding( ): string
+		cors( ): any
+		natural_width( ): number
+		natural_height( ): number
+		load( next?: any ): any
+		dom_name( ): string
+		attr( ): Record<string, any> & ReturnType< $mol_view['attr'] >
+		event( ): Record<string, any>
+		minimal_width( ): number
+		minimal_height( ): number
+	}
+	
+}
+
+//# sourceMappingURL=image.view.tree.d.ts.map
+declare namespace $.$$ {
+    class $mol_image extends $.$mol_image {
+        natural_width(next?: null): number;
+        natural_height(next?: null): number;
+        load(): void;
+    }
+}
+
+declare namespace $ {
+}
+
+declare namespace $ {
+
+	export class $bog_pazzle_upload_image extends $mol_button_open {
+		title( ): string
+		image_uri( ): string
+	}
+	
+}
+
+//# sourceMappingURL=image.view.tree.d.ts.map
+declare namespace $.$$ {
+    class $bog_pazzle_upload_image extends $.$bog_pazzle_upload_image {
+        private _image_data;
+        private _image_uri;
+        accept(): string;
+        multiple(): boolean;
+        image_data(next?: Uint8Array | null): Uint8Array<ArrayBufferLike> | null;
+        image_uri(): string;
+        sub(): ($.$mol_button_open_native | $mol_image | $mol_icon_upload)[];
+        Image(): $mol_image;
+        Placeholder(): $mol_icon_upload;
+        files(next?: readonly File[]): never[];
+        destructor(): void;
     }
 }
 
@@ -3306,38 +3428,6 @@ declare namespace $ {
 
 declare namespace $ {
 
-	export class $mol_image extends $mol_view {
-		uri( ): string
-		title( ): string
-		loading( ): string
-		decoding( ): string
-		cors( ): any
-		natural_width( ): number
-		natural_height( ): number
-		load( next?: any ): any
-		dom_name( ): string
-		attr( ): Record<string, any> & ReturnType< $mol_view['attr'] >
-		event( ): Record<string, any>
-		minimal_width( ): number
-		minimal_height( ): number
-	}
-	
-}
-
-//# sourceMappingURL=image.view.tree.d.ts.map
-declare namespace $.$$ {
-    class $mol_image extends $.$mol_image {
-        natural_width(next?: null): number;
-        natural_height(next?: null): number;
-        load(): void;
-    }
-}
-
-declare namespace $ {
-}
-
-declare namespace $ {
-
 	type $mol_image__uri_mol_link_iconed_1 = $mol_type_enforce<
 		ReturnType< $mol_link_iconed['icon'] >
 		,
@@ -4143,239 +4233,6 @@ declare namespace $ {
 }
 
 declare namespace $ {
-}
-
-declare namespace $ {
-
-	export class $mol_button_major extends $mol_button_minor {
-		theme( ): string
-	}
-	
-}
-
-//# sourceMappingURL=major.view.tree.d.ts.map
-declare namespace $ {
-}
-
-declare namespace $ {
-
-	type $mol_text_list_item__index_mol_text_list_1 = $mol_type_enforce<
-		ReturnType< $mol_text_list['item_index'] >
-		,
-		ReturnType< $mol_text_list_item['index'] >
-	>
-	type $mol_text_list_item__sub_mol_text_list_2 = $mol_type_enforce<
-		ReturnType< $mol_text_list['block_content'] >
-		,
-		ReturnType< $mol_text_list_item['sub'] >
-	>
-	export class $mol_text_list extends $mol_text {
-		type( ): string
-		auto_scroll( ): any
-		attr( ): ({ 
-			'mol_text_list_type': ReturnType< $mol_text_list['type'] >,
-		})  & ReturnType< $mol_text['attr'] >
-		Paragraph( id: any): $mol_text_list_item
-	}
-	
-	export class $mol_text_list_item extends $mol_paragraph {
-		index( ): number
-		attr( ): ({ 
-			'mol_text_list_item_index': ReturnType< $mol_text_list_item['index'] >,
-		})  & ReturnType< $mol_paragraph['attr'] >
-	}
-	
-}
-
-//# sourceMappingURL=list.view.tree.d.ts.map
-declare namespace $ {
-
-	type $mol_text__text_bog_pazzle_menu_1 = $mol_type_enforce<
-		string
-		,
-		ReturnType< $mol_text['text'] >
-	>
-	type $mol_text__text_bog_pazzle_menu_2 = $mol_type_enforce<
-		string
-		,
-		ReturnType< $mol_text['text'] >
-	>
-	type $mol_button_major__sub_bog_pazzle_menu_3 = $mol_type_enforce<
-		readonly(any)[]
-		,
-		ReturnType< $mol_button_major['sub'] >
-	>
-	type $mol_text__text_bog_pazzle_menu_4 = $mol_type_enforce<
-		string
-		,
-		ReturnType< $mol_text['text'] >
-	>
-	type $mol_button_minor__sub_bog_pazzle_menu_5 = $mol_type_enforce<
-		readonly(any)[]
-		,
-		ReturnType< $mol_button_minor['sub'] >
-	>
-	type $mol_text__text_bog_pazzle_menu_6 = $mol_type_enforce<
-		string
-		,
-		ReturnType< $mol_text['text'] >
-	>
-	type $mol_button_minor__sub_bog_pazzle_menu_7 = $mol_type_enforce<
-		readonly(any)[]
-		,
-		ReturnType< $mol_button_minor['sub'] >
-	>
-	export class $bog_pazzle_menu extends $mol_list {
-		Title( ): $mol_text
-		New_game_label( ): $mol_text
-		New_game( ): $mol_button_major
-		Saved_label( ): $mol_text
-		Saved( ): $mol_button_minor
-		Help_label( ): $mol_text
-		Help( ): $mol_button_minor
-		rows( ): readonly(any)[]
-	}
-	
-}
-
-//# sourceMappingURL=menu.view.tree.d.ts.map
-declare namespace $.$$ {
-}
-
-declare namespace $ {
-
-	export class $mol_icon_upload extends $mol_icon {
-		path( ): string
-	}
-	
-}
-
-//# sourceMappingURL=upload.view.tree.d.ts.map
-declare namespace $ {
-
-	type $mol_button_open_native__files_mol_button_open_1 = $mol_type_enforce<
-		ReturnType< $mol_button_open['files_handled'] >
-		,
-		ReturnType< $mol_button_open_native['files'] >
-	>
-	type $mol_button_open_native__accept_mol_button_open_2 = $mol_type_enforce<
-		ReturnType< $mol_button_open['accept'] >
-		,
-		ReturnType< $mol_button_open_native['accept'] >
-	>
-	type $mol_button_open_native__multiple_mol_button_open_3 = $mol_type_enforce<
-		ReturnType< $mol_button_open['multiple'] >
-		,
-		ReturnType< $mol_button_open_native['multiple'] >
-	>
-	export class $mol_button_open extends $mol_button_minor {
-		Icon( ): $mol_icon_upload
-		files( next?: readonly(File)[] ): readonly(File)[]
-		files_handled( next?: ReturnType< $mol_button_open['files'] > ): ReturnType< $mol_button_open['files'] >
-		accept( ): string
-		multiple( ): boolean
-		Native( ): $mol_button_open_native
-		sub( ): readonly(any)[]
-	}
-	
-	export class $mol_button_open_native extends $mol_view {
-		accept( ): string
-		multiple( ): boolean
-		picked( next?: any ): any
-		dom_name( ): string
-		files( next?: readonly(File)[] ): readonly(File)[]
-		attr( ): ({ 
-			'type': string,
-			'accept': ReturnType< $mol_button_open_native['accept'] >,
-			'multiple': ReturnType< $mol_button_open_native['multiple'] >,
-		}) 
-		event( ): ({ 
-			change( next?: ReturnType< $mol_button_open_native['picked'] > ): ReturnType< $mol_button_open_native['picked'] >,
-		}) 
-	}
-	
-}
-
-//# sourceMappingURL=open.view.tree.d.ts.map
-declare namespace $.$$ {
-    class $mol_button_open extends $.$mol_button_open {
-        files_handled(next?: readonly File[]): readonly File[];
-    }
-    class $mol_button_open_native extends $.$mol_button_open_native {
-        dom_node(): HTMLInputElement;
-        picked(): void;
-    }
-}
-
-declare namespace $ {
-}
-
-declare namespace $ {
-
-	export class $bog_pazzle_upload_image extends $mol_button_open {
-		title( ): string
-		image_uri( ): string
-	}
-	
-}
-
-//# sourceMappingURL=image.view.tree.d.ts.map
-declare namespace $.$$ {
-    class $bog_pazzle_upload_image extends $.$bog_pazzle_upload_image {
-        private _image_data;
-        private _image_uri;
-        accept(): string;
-        multiple(): boolean;
-        image_data(next?: Uint8Array | null): Uint8Array<ArrayBufferLike> | null;
-        image_uri(): string;
-        sub(): ($mol_image | $.$mol_button_open_native | $mol_icon_upload)[];
-        Image(): $mol_image;
-        Placeholder(): $mol_icon_upload;
-        files(next?: readonly File[]): never[];
-        destructor(): void;
-    }
-}
-
-declare namespace $.$$ {
-}
-
-declare namespace $ {
-}
-
-declare namespace $ {
-
-	type $mol_view__minimal_height_mol_labeler_1 = $mol_type_enforce<
-		number
-		,
-		ReturnType< $mol_view['minimal_height'] >
-	>
-	type $mol_view__sub_mol_labeler_2 = $mol_type_enforce<
-		ReturnType< $mol_labeler['label'] >
-		,
-		ReturnType< $mol_view['sub'] >
-	>
-	type $mol_view__minimal_height_mol_labeler_3 = $mol_type_enforce<
-		number
-		,
-		ReturnType< $mol_view['minimal_height'] >
-	>
-	type $mol_view__sub_mol_labeler_4 = $mol_type_enforce<
-		ReturnType< $mol_labeler['content'] >
-		,
-		ReturnType< $mol_view['sub'] >
-	>
-	export class $mol_labeler extends $mol_list {
-		label( ): readonly($mol_view_content)[]
-		Label( ): $mol_view
-		content( ): readonly(any)[]
-		Content( ): $mol_view
-		rows( ): readonly(any)[]
-	}
-	
-}
-
-//# sourceMappingURL=labeler.view.tree.d.ts.map
-declare namespace $ {
 
 	export class $mol_icon_chevron_left extends $mol_icon {
 		path( ): string
@@ -4516,6 +4373,42 @@ declare namespace $.$$ {
 }
 
 declare namespace $ {
+}
+
+declare namespace $ {
+
+	type $mol_view__minimal_height_mol_labeler_1 = $mol_type_enforce<
+		number
+		,
+		ReturnType< $mol_view['minimal_height'] >
+	>
+	type $mol_view__sub_mol_labeler_2 = $mol_type_enforce<
+		ReturnType< $mol_labeler['label'] >
+		,
+		ReturnType< $mol_view['sub'] >
+	>
+	type $mol_view__minimal_height_mol_labeler_3 = $mol_type_enforce<
+		number
+		,
+		ReturnType< $mol_view['minimal_height'] >
+	>
+	type $mol_view__sub_mol_labeler_4 = $mol_type_enforce<
+		ReturnType< $mol_labeler['content'] >
+		,
+		ReturnType< $mol_view['sub'] >
+	>
+	export class $mol_labeler extends $mol_list {
+		label( ): readonly($mol_view_content)[]
+		Label( ): $mol_view
+		content( ): readonly(any)[]
+		Content( ): $mol_view
+		rows( ): readonly(any)[]
+	}
+	
+}
+
+//# sourceMappingURL=labeler.view.tree.d.ts.map
+declare namespace $ {
 
 	type $mol_text__text_bog_pazzle_settings_1 = $mol_type_enforce<
 		string
@@ -4646,6 +4539,44 @@ declare namespace $ {
 }
 
 //# sourceMappingURL=row.view.tree.d.ts.map
+declare namespace $ {
+
+	type $mol_text__text_bog_pazzle_board_victory_1 = $mol_type_enforce<
+		string
+		,
+		ReturnType< $mol_text['text'] >
+	>
+	type $mol_text__text_bog_pazzle_board_victory_2 = $mol_type_enforce<
+		ReturnType< $bog_pazzle_board_victory['stats_text'] >
+		,
+		ReturnType< $mol_text['text'] >
+	>
+	type $mol_list__rows_bog_pazzle_board_victory_3 = $mol_type_enforce<
+		readonly(any)[]
+		,
+		ReturnType< $mol_list['rows'] >
+	>
+	export class $bog_pazzle_board_victory extends $mol_view {
+		Title( ): $mol_text
+		stats_text( ): string
+		Stats( ): $mol_text
+		Card( ): $mol_list
+		moves( ): number
+		sub( ): readonly(any)[]
+	}
+	
+}
+
+//# sourceMappingURL=victory.view.tree.d.ts.map
+declare namespace $.$$ {
+    class $bog_pazzle_board_victory extends $.$bog_pazzle_board_victory {
+        stats_text(): string;
+    }
+}
+
+declare namespace $.$$ {
+}
+
 declare namespace $ {
 
 	export class $rise_drag extends $mol_plugin {
@@ -4832,22 +4763,41 @@ declare namespace $ {
 		({ 
 			'gridTemplateColumns': ReturnType< $bog_pazzle_board['grid_template_columns'] >,
 			'gridTemplateRows': ReturnType< $bog_pazzle_board['grid_template_rows'] >,
+			'aspectRatio': ReturnType< $bog_pazzle_board['grid_aspect_ratio'] >,
+			'gap': ReturnType< $bog_pazzle_board['grid_gap'] >,
 		}) 
 		,
 		ReturnType< $mol_view['style'] >
+	>
+	type $mol_view__attr_bog_pazzle_board_3 = $mol_type_enforce<
+		({ 
+			'bog_pazzle_solved': ReturnType< $bog_pazzle_board['solved'] >,
+		}) 
+		,
+		ReturnType< $mol_view['attr'] >
+	>
+	type $bog_pazzle_board_victory__moves_bog_pazzle_board_4 = $mol_type_enforce<
+		ReturnType< $bog_pazzle_board['moves'] >
+		,
+		ReturnType< $bog_pazzle_board_victory['moves'] >
 	>
 	export class $bog_pazzle_board extends $mol_view {
 		Placeholder( ): $mol_text
 		Controls( ): $mol_row
 		grid_template_columns( ): string
 		grid_template_rows( ): string
+		grid_aspect_ratio( ): string
+		grid_gap( ): string
+		solved( ): boolean
 		Grid( ): $mol_view
+		moves( ): number
 		image_uri( ): string
 		rows( ): number
 		columns( ): number
 		show_numbers( ): boolean
 		shuffle_enabled( ): boolean
 		sub( ): readonly(any)[]
+		Victory( ): $bog_pazzle_board_victory
 	}
 	
 }
@@ -4855,6 +4805,12 @@ declare namespace $ {
 //# sourceMappingURL=board.view.tree.d.ts.map
 declare namespace $.$$ {
     class $bog_pazzle_board extends $.$bog_pazzle_board {
+        image_dimensions(): {
+            width: number;
+            height: number;
+        } | null;
+        grid_aspect_ratio(): string;
+        grid_gap(): "0" | "0.25rem";
         sub(): $mol_view[];
         Grid(): $mol_view;
         Controls(): $mol_row;
@@ -4922,6 +4878,40 @@ declare namespace $.$$ {
 }
 
 declare namespace $ {
+}
+
+declare namespace $ {
+
+	type $mol_text_list_item__index_mol_text_list_1 = $mol_type_enforce<
+		ReturnType< $mol_text_list['item_index'] >
+		,
+		ReturnType< $mol_text_list_item['index'] >
+	>
+	type $mol_text_list_item__sub_mol_text_list_2 = $mol_type_enforce<
+		ReturnType< $mol_text_list['block_content'] >
+		,
+		ReturnType< $mol_text_list_item['sub'] >
+	>
+	export class $mol_text_list extends $mol_text {
+		type( ): string
+		auto_scroll( ): any
+		attr( ): ({ 
+			'mol_text_list_type': ReturnType< $mol_text_list['type'] >,
+		})  & ReturnType< $mol_text['attr'] >
+		Paragraph( id: any): $mol_text_list_item
+	}
+	
+	export class $mol_text_list_item extends $mol_paragraph {
+		index( ): number
+		attr( ): ({ 
+			'mol_text_list_item_index': ReturnType< $mol_text_list_item['index'] >,
+		})  & ReturnType< $mol_paragraph['attr'] >
+	}
+	
+}
+
+//# sourceMappingURL=list.view.tree.d.ts.map
+declare namespace $ {
 
 	type $mol_text__text_bog_pazzle_upload_1 = $mol_type_enforce<
 		string
@@ -4953,45 +4943,34 @@ declare namespace $ {
 		,
 		ReturnType< $mol_text['text'] >
 	>
-	type $bog_pazzle_board__image_uri_bog_pazzle_upload_7 = $mol_type_enforce<
-		ReturnType< $bog_pazzle_upload['image_uri'] >
+	type $mol_text__text_bog_pazzle_upload_7 = $mol_type_enforce<
+		string
 		,
-		ReturnType< $bog_pazzle_board['image_uri'] >
+		ReturnType< $mol_text['text'] >
 	>
-	type $bog_pazzle_board__rows_bog_pazzle_upload_8 = $mol_type_enforce<
-		ReturnType< $bog_pazzle_upload['rows_count'] >
+	type $mol_link__arg_bog_pazzle_upload_8 = $mol_type_enforce<
+		({ 
+			'mode': string,
+		}) 
 		,
-		ReturnType< $bog_pazzle_board['rows'] >
+		ReturnType< $mol_link['arg'] >
 	>
-	type $bog_pazzle_board__columns_bog_pazzle_upload_9 = $mol_type_enforce<
-		ReturnType< $bog_pazzle_upload['columns_count'] >
+	type $mol_link__sub_bog_pazzle_upload_9 = $mol_type_enforce<
+		readonly(any)[]
 		,
-		ReturnType< $bog_pazzle_board['columns'] >
-	>
-	type $bog_pazzle_board__show_numbers_bog_pazzle_upload_10 = $mol_type_enforce<
-		ReturnType< $bog_pazzle_upload['show_numbers'] >
-		,
-		ReturnType< $bog_pazzle_board['show_numbers'] >
-	>
-	type $bog_pazzle_board__shuffle_enabled_bog_pazzle_upload_11 = $mol_type_enforce<
-		ReturnType< $bog_pazzle_upload['shuffle_enabled'] >
-		,
-		ReturnType< $bog_pazzle_board['shuffle_enabled'] >
+		ReturnType< $mol_link['sub'] >
 	>
 	export class $bog_pazzle_upload extends $mol_list {
 		Intro( ): $mol_text
 		Image_label( ): $mol_text
-		Image_control( ): $bog_pazzle_upload_image
 		Image( ): $mol_labeler
 		Settings_title( ): $mol_text
-		Settings( ): $bog_pazzle_settings
 		Preview_title( ): $mol_text
+		Start_label( ): $mol_text
+		Start_link( ): $mol_link
+		Image_control( ): $bog_pazzle_upload_image
+		Settings( ): $bog_pazzle_settings
 		Preview( ): $bog_pazzle_board
-		image_uri( ): string
-		rows_count( ): number
-		columns_count( ): number
-		show_numbers( ): boolean
-		shuffle_enabled( ): boolean
 		rows( ): readonly(any)[]
 	}
 	
@@ -5000,14 +4979,75 @@ declare namespace $ {
 //# sourceMappingURL=upload.view.tree.d.ts.map
 declare namespace $.$$ {
     class $bog_pazzle_upload extends $.$bog_pazzle_upload {
-        image_uri(): string;
-        rows_count(): number;
-        columns_count(): number;
-        show_numbers(next?: boolean): boolean;
-        shuffle_enabled(next?: boolean): boolean;
     }
 }
 
+declare namespace $.$$ {
+}
+
+declare namespace $ {
+}
+
+declare namespace $ {
+
+	export class $mol_button_major extends $mol_button_minor {
+		theme( ): string
+	}
+	
+}
+
+//# sourceMappingURL=major.view.tree.d.ts.map
+declare namespace $ {
+
+	type $mol_text__text_bog_pazzle_menu_1 = $mol_type_enforce<
+		string
+		,
+		ReturnType< $mol_text['text'] >
+	>
+	type $mol_text__text_bog_pazzle_menu_2 = $mol_type_enforce<
+		string
+		,
+		ReturnType< $mol_text['text'] >
+	>
+	type $mol_button_major__sub_bog_pazzle_menu_3 = $mol_type_enforce<
+		readonly(any)[]
+		,
+		ReturnType< $mol_button_major['sub'] >
+	>
+	type $mol_text__text_bog_pazzle_menu_4 = $mol_type_enforce<
+		string
+		,
+		ReturnType< $mol_text['text'] >
+	>
+	type $mol_button_minor__sub_bog_pazzle_menu_5 = $mol_type_enforce<
+		readonly(any)[]
+		,
+		ReturnType< $mol_button_minor['sub'] >
+	>
+	type $mol_text__text_bog_pazzle_menu_6 = $mol_type_enforce<
+		string
+		,
+		ReturnType< $mol_text['text'] >
+	>
+	type $mol_button_minor__sub_bog_pazzle_menu_7 = $mol_type_enforce<
+		readonly(any)[]
+		,
+		ReturnType< $mol_button_minor['sub'] >
+	>
+	export class $bog_pazzle_menu extends $mol_list {
+		Title( ): $mol_text
+		New_game_label( ): $mol_text
+		New_game( ): $mol_button_major
+		Saved_label( ): $mol_text
+		Saved( ): $mol_button_minor
+		Help_label( ): $mol_text
+		Help( ): $mol_button_minor
+		rows( ): readonly(any)[]
+	}
+	
+}
+
+//# sourceMappingURL=menu.view.tree.d.ts.map
 declare namespace $.$$ {
 }
 
@@ -5025,9 +5065,9 @@ declare namespace $ {
 	>
 	export class $bog_pazzle_layout extends $mol_view {
 		Menu( ): $bog_pazzle_menu
-		Upload( ): $bog_pazzle_upload
 		Workspace( ): $mol_view
 		Content( ): $mol_row
+		Upload( ): $bog_pazzle_upload
 		sub( ): readonly(any)[]
 	}
 	
@@ -5039,23 +5079,162 @@ declare namespace $.$$ {
 
 declare namespace $ {
 
+	type $mol_text__text_bog_pazzle_play_1 = $mol_type_enforce<
+		string
+		,
+		ReturnType< $mol_text['text'] >
+	>
+	type $mol_link__arg_bog_pazzle_play_2 = $mol_type_enforce<
+		({ 
+			'mode': any,
+		}) 
+		,
+		ReturnType< $mol_link['arg'] >
+	>
+	type $mol_link__sub_bog_pazzle_play_3 = $mol_type_enforce<
+		readonly(any)[]
+		,
+		ReturnType< $mol_link['sub'] >
+	>
+	type $mol_text__text_bog_pazzle_play_4 = $mol_type_enforce<
+		ReturnType< $bog_pazzle_play['moves_label'] >
+		,
+		ReturnType< $mol_text['text'] >
+	>
+	type $mol_row__sub_bog_pazzle_play_5 = $mol_type_enforce<
+		readonly(any)[]
+		,
+		ReturnType< $mol_row['sub'] >
+	>
+	export class $bog_pazzle_play extends $mol_view {
+		Back_label( ): $mol_text
+		Back( ): $mol_link
+		moves_label( ): string
+		Moves_text( ): $mol_text
+		Toolbar( ): $mol_row
+		Board( ): $bog_pazzle_board
+		moves( ): number
+		sub( ): readonly(any)[]
+	}
+	
+}
+
+//# sourceMappingURL=play.view.tree.d.ts.map
+declare namespace $.$$ {
+    class $bog_pazzle_play extends $.$bog_pazzle_play {
+        moves_label(): string;
+    }
+}
+
+declare namespace $.$$ {
+}
+
+declare namespace $ {
+    function $mol_offline(): void;
+}
+
+declare namespace $ {
+}
+
+declare namespace $ {
+
 	type $bog_theme_toggle__theme_auto_bog_pazzle_1 = $mol_type_enforce<
 		ReturnType< $bog_pazzle['Theme'] >
 		,
 		ReturnType< $bog_theme_toggle['theme_auto'] >
 	>
+	type $bog_pazzle_upload__Image_control_bog_pazzle_2 = $mol_type_enforce<
+		ReturnType< $bog_pazzle['Image_control'] >
+		,
+		ReturnType< $bog_pazzle_upload['Image_control'] >
+	>
+	type $bog_pazzle_upload__Settings_bog_pazzle_3 = $mol_type_enforce<
+		ReturnType< $bog_pazzle['Settings'] >
+		,
+		ReturnType< $bog_pazzle_upload['Settings'] >
+	>
+	type $bog_pazzle_upload__Preview_bog_pazzle_4 = $mol_type_enforce<
+		ReturnType< $bog_pazzle['Board'] >
+		,
+		ReturnType< $bog_pazzle_upload['Preview'] >
+	>
+	type $bog_pazzle_board__image_uri_bog_pazzle_5 = $mol_type_enforce<
+		ReturnType< $bog_pazzle['image_uri'] >
+		,
+		ReturnType< $bog_pazzle_board['image_uri'] >
+	>
+	type $bog_pazzle_board__rows_bog_pazzle_6 = $mol_type_enforce<
+		ReturnType< $bog_pazzle['rows_count'] >
+		,
+		ReturnType< $bog_pazzle_board['rows'] >
+	>
+	type $bog_pazzle_board__columns_bog_pazzle_7 = $mol_type_enforce<
+		ReturnType< $bog_pazzle['columns_count'] >
+		,
+		ReturnType< $bog_pazzle_board['columns'] >
+	>
+	type $bog_pazzle_board__show_numbers_bog_pazzle_8 = $mol_type_enforce<
+		ReturnType< $bog_pazzle['show_numbers'] >
+		,
+		ReturnType< $bog_pazzle_board['show_numbers'] >
+	>
+	type $bog_pazzle_board__shuffle_enabled_bog_pazzle_9 = $mol_type_enforce<
+		ReturnType< $bog_pazzle['shuffle_enabled'] >
+		,
+		ReturnType< $bog_pazzle_board['shuffle_enabled'] >
+	>
+	type $bog_pazzle_layout__Upload_bog_pazzle_10 = $mol_type_enforce<
+		ReturnType< $bog_pazzle['Upload'] >
+		,
+		ReturnType< $bog_pazzle_layout['Upload'] >
+	>
+	type $bog_pazzle_play__Board_bog_pazzle_11 = $mol_type_enforce<
+		ReturnType< $bog_pazzle['Board'] >
+		,
+		ReturnType< $bog_pazzle_play['Board'] >
+	>
+	type $bog_pazzle_play__moves_bog_pazzle_12 = $mol_type_enforce<
+		ReturnType< $bog_pazzle['play_moves'] >
+		,
+		ReturnType< $bog_pazzle_play['moves'] >
+	>
 	export class $bog_pazzle extends $mol_page {
 		Theme( ): $bog_theme_auto
 		title( ): string
 		Theme_toggle( ): $bog_theme_toggle
-		Layout( ): $bog_pazzle_layout
+		body_content( ): readonly(any)[]
+		Image_control( ): $bog_pazzle_upload_image
+		Settings( ): $bog_pazzle_settings
+		Upload( ): $bog_pazzle_upload
+		play_moves( ): number
 		plugins( ): readonly(any)[]
 		head( ): readonly(any)[]
-		body( ): readonly(any)[]
+		body( ): ReturnType< $bog_pazzle['body_content'] >
+		image_uri( ): string
+		rows_count( ): number
+		columns_count( ): number
+		show_numbers( ): boolean
+		shuffle_enabled( ): boolean
+		Board( ): $bog_pazzle_board
+		Layout( ): $bog_pazzle_layout
+		Play( ): $bog_pazzle_play
 	}
 	
 }
 
 //# sourceMappingURL=pazzle.view.tree.d.ts.map
+declare namespace $.$$ {
+    class $bog_pazzle extends $.$bog_pazzle {
+        image_uri(): string;
+        rows_count(): number;
+        columns_count(): number;
+        show_numbers(): boolean;
+        shuffle_enabled(): boolean;
+        play_moves(): number;
+        mode(): string;
+        body_content(): $bog_pazzle_layout[] | $.$bog_pazzle_play[];
+    }
+}
+
 export = $;
 //# sourceMappingURL=node.d.ts.map
