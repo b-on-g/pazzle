@@ -1,8 +1,31 @@
 namespace $.$$ {
 	export class $bog_pazzle extends $.$bog_pazzle {
 		@$mol_mem
+		image_data(next?: Uint8Array | null) {
+			if (next !== undefined) return next
+			return null as Uint8Array | null
+		}
+
+		private _blob_uri: string | null = null
+
+		@$mol_mem
 		image_uri(): string {
-			return this.Image_control().image_uri()
+			const data = this.image_data()
+			if (!data) {
+				if (this._blob_uri) {
+					URL.revokeObjectURL(this._blob_uri)
+					this._blob_uri = null
+				}
+				return ''
+			}
+			if (!this._blob_uri) {
+				const buffer = data.buffer instanceof ArrayBuffer
+					? data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)
+					: data.slice().buffer
+				const blob = new Blob([buffer], { type: 'image/*' })
+				this._blob_uri = URL.createObjectURL(blob)
+			}
+			return this._blob_uri
 		}
 
 		@$mol_mem

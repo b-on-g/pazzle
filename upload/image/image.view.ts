@@ -1,7 +1,10 @@
 namespace $.$$ {
 	export class $bog_pazzle_upload_image extends $.$bog_pazzle_upload_image {
-		private _image_data: Uint8Array | null = null
-		private _image_uri: string | null = null
+		@$mol_mem
+		image_data(next?: Uint8Array | null) {
+			if (next !== undefined) return next
+			return null as Uint8Array | null
+		}
 
 		accept() {
 			return 'image/*'
@@ -11,37 +14,8 @@ namespace $.$$ {
 			return false
 		}
 
-		@$mol_mem
-		image_data(next?: Uint8Array | null) {
-			if (next !== undefined) {
-				if (this._image_uri) {
-					try {
-						URL.revokeObjectURL(this._image_uri)
-					} catch {}
-					this._image_uri = null
-				}
-				this._image_data = next ?? null
-			}
-			return this._image_data ?? null
-		}
-
-		@$mol_mem
-		image_uri() {
-			const data = this.image_data()
-			if (!data) return ''
-			if (!this._image_uri) {
-				const buffer =
-					data.buffer instanceof ArrayBuffer
-						? data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)
-						: data.slice().buffer
-				const blob = new Blob([buffer], { type: 'image/*' })
-				this._image_uri = URL.createObjectURL(blob)
-			}
-			return this._image_uri
-		}
-
 		sub() {
-			const has_image = !!this.image_data()
+			const has_image = !!this.image_uri()
 			const view = has_image ? this.Image() : this.Placeholder()
 			return [view, this.Native()]
 		}
@@ -67,17 +41,6 @@ namespace $.$$ {
 				this.image_data(buffer)
 			}
 			return []
-		}
-
-		destructor() {
-			super.destructor()
-			if (this._image_uri) {
-				try {
-					URL.revokeObjectURL(this._image_uri)
-				} catch {}
-				this._image_uri = null
-			}
-			this._image_data = null
 		}
 	}
 }

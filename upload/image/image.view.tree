@@ -1,3 +1,4 @@
 $bog_pazzle_upload_image $mol_button_open
 	title \Загрузить изображение
+	image_data? null
 	image_uri \

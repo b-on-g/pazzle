@@ -134,10 +134,18 @@ namespace $.$$ {
 			tile.slot_index(slot_index)
 			tile.label(this.show_numbers() ? String(piece_index + 1) : '')
 			tile.selected(this.tile_marked(slot_index))
-			tile.event_click(() => this.tile_pick(slot_index))
-			tile.on_drag_start((event: PointerEvent) => this.tile_drag_start(slot_index, event))
-			tile.on_drag((event: PointerEvent) => this.tile_drag_move(slot_index, event))
-			tile.on_drag_end((event: PointerEvent) => this.tile_drag_end(slot_index, event))
+			tile.on_drag_start = ((event?: PointerEvent) => {
+				if (event !== undefined) this.tile_drag_start(slot_index, event)
+				return null
+			}) as any
+			tile.on_drag = ((event?: PointerEvent) => {
+				if (event !== undefined) this.tile_drag_move(slot_index, event)
+				return null
+			}) as any
+			tile.on_drag_end = ((event?: PointerEvent) => {
+				if (event !== undefined) this.tile_drag_end(slot_index, event)
+				return null
+			}) as any
 			const group = this.tile_groups().get(slot_index) ?? [slot_index]
 			const synced = group
 				.filter(member => member !== slot_index)
@@ -322,7 +330,6 @@ namespace $.$$ {
 			this.drag_target_slots(group)
 			this.drag_source_index(slot_index)
 			this.drag_hover_index(slot_index)
-			this.selected_index(slot_index)
 		}
 
 		@$mol_action
@@ -361,6 +368,15 @@ namespace $.$$ {
 						;[order[source], order[target]] = [order[target], order[source]]
 						this.tile_indices(order)
 						moved = true
+					} else {
+						// Click (no movement) — use click-to-select logic
+						this.reset_all_tile_positions()
+						this.drag_source_index(null)
+						this.drag_hover_index(null)
+						this.drag_group_slots(null)
+						this.drag_target_slots(null)
+						this.tile_pick(source)
+						return
 					}
 				}
 				if (moved) this.moves(this.moves() + 1)

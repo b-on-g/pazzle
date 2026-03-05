@@ -6,6 +6,7 @@ $bog_pazzle $mol_page
 		<= Theme_toggle $bog_theme_toggle
 			theme_auto <= Theme
 	body <= body_content /
+	image_data? null
 	image_uri \
 	rows_count 4
 	columns_count 4
@@ -20,6 +21,8 @@ $bog_pazzle $mol_page
 	Layout $bog_pazzle_layout
 		Upload <= Upload $bog_pazzle_upload
 			Image_control <= Image_control $bog_pazzle_upload_image
+				image_data? <=> image_data?
+				image_uri <= image_uri
 			Settings <= Settings $bog_pazzle_settings
 			Preview <= Board
 	Play $bog_pazzle_play
