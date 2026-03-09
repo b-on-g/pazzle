@@ -4620,42 +4620,47 @@ declare namespace $.$$ {
 
 declare namespace $ {
 
-	type $rise_drag__on_drag_start_rise_drag_view_1 = $mol_type_enforce<
+	type __rise_drag_view_1 = $mol_type_enforce<
+		Parameters< $rise_drag_view['pointerdown'] >[0]
+		,
+		Parameters< ReturnType< $rise_drag_view['Drag'] >['pointerdown'] >[0]
+	>
+	type $rise_drag__on_drag_start_rise_drag_view_2 = $mol_type_enforce<
 		ReturnType< $rise_drag_view['on_drag_start'] >
 		,
 		ReturnType< $rise_drag['on_drag_start'] >
 	>
-	type $rise_drag__on_drag_end_rise_drag_view_2 = $mol_type_enforce<
+	type $rise_drag__on_drag_end_rise_drag_view_3 = $mol_type_enforce<
 		ReturnType< $rise_drag_view['on_drag_end'] >
 		,
 		ReturnType< $rise_drag['on_drag_end'] >
 	>
-	type $rise_drag__on_drag_rise_drag_view_3 = $mol_type_enforce<
+	type $rise_drag__on_drag_rise_drag_view_4 = $mol_type_enforce<
 		ReturnType< $rise_drag_view['on_drag'] >
 		,
 		ReturnType< $rise_drag['on_drag'] >
 	>
-	type $rise_drag__y_rise_drag_view_4 = $mol_type_enforce<
+	type $rise_drag__y_rise_drag_view_5 = $mol_type_enforce<
 		ReturnType< $rise_drag_view['y'] >
 		,
 		ReturnType< $rise_drag['y'] >
 	>
-	type $rise_drag__x_rise_drag_view_5 = $mol_type_enforce<
+	type $rise_drag__x_rise_drag_view_6 = $mol_type_enforce<
 		ReturnType< $rise_drag_view['x'] >
 		,
 		ReturnType< $rise_drag['x'] >
 	>
-	type $rise_drag__drags_synced_rise_drag_view_6 = $mol_type_enforce<
+	type $rise_drag__drags_synced_rise_drag_view_7 = $mol_type_enforce<
 		ReturnType< $rise_drag_view['drags_synced'] >
 		,
 		ReturnType< $rise_drag['drags_synced'] >
 	>
-	type $rise_drag__repos_x_rise_drag_view_7 = $mol_type_enforce<
+	type $rise_drag__repos_x_rise_drag_view_8 = $mol_type_enforce<
 		ReturnType< $rise_drag_view['repos_x'] >
 		,
 		ReturnType< $rise_drag['repos_x'] >
 	>
-	type $rise_drag__repos_y_rise_drag_view_8 = $mol_type_enforce<
+	type $rise_drag__repos_y_rise_drag_view_9 = $mol_type_enforce<
 		ReturnType< $rise_drag_view['repos_y'] >
 		,
 		ReturnType< $rise_drag['repos_y'] >
@@ -4670,6 +4675,7 @@ declare namespace $ {
 		drags_synced( ): readonly($rise_drag)[]
 		repos_x( id: any): number
 		repos_y( id: any): number
+		pointerdown( next?: ReturnType< ReturnType< $rise_drag_view['Drag'] >['pointerdown'] > ): ReturnType< ReturnType< $rise_drag_view['Drag'] >['pointerdown'] >
 		Drag( ): $rise_drag
 		plugins( ): readonly(any)[]
 		style( ): ({ 

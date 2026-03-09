@@ -11980,6 +11980,9 @@ var $;
 		repos_y(id){
 			return 1;
 		}
+		pointerdown(next){
+			return (this.Drag().pointerdown(next));
+		}
 		Drag(){
 			const obj = new this.$.$rise_drag();
 			(obj.on_drag_start) = (next) => ((this.on_drag_start(next)));
