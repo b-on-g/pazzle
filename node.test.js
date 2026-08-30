@@ -32,7 +32,7 @@ var $;
 "use strict";
 var $;
 (function ($) {
-    const mod = require('module');
+    const mod = require /****/('module');
     const internals = mod.builtinModules;
     function $node_internal_check(name) {
         if (name.startsWith('node:'))
@@ -72,7 +72,7 @@ var $;
 var $;
 (function ($) {
     function $mol_fail_hidden(error) {
-        throw error;
+        throw error; /// Use 'Never Pause Here' breakpoint in DevTools or simply blackbox this script
     }
     $.$mol_fail_hidden = $mol_fail_hidden;
 })($ || ($ = {}));
@@ -130,8 +130,8 @@ var $;
 "use strict";
 var $;
 (function ($) {
-    const path = require('path');
-    const mod = require('module');
+    const path = require /****/('path');
+    const mod = require /****/('module');
     const localRequire = mod.createRequire(path.join(process.cwd(), 'package.json'));
     function $node_autoinstall(name) {
         try {
@@ -238,6 +238,7 @@ var $;
                     ])
                 ].map(frame_normalize).join('\n')
             });
+            // в nodejs, что б не дублировалось cause в консоли
             Object.defineProperty(this, 'cause', {
                 get: () => cause
             });
@@ -271,6 +272,11 @@ var $;
 var $;
 (function ($) {
     const instances = new WeakSet();
+    /**
+     * Proxy that delegates all to lazy returned target.
+     *
+     * 	$mol_delegate( Array.prototype , ()=> fetch_array() )
+     */
     function $mol_delegate(proto, target) {
         const proxy = new Proxy(proto, {
             get: (_, field) => {
@@ -414,6 +420,9 @@ var $;
         [Symbol.dispose]() {
             this.destructor();
         }
+        //[ Symbol.toPrimitive ]( hint: string ) {
+        //	return hint === 'number' ? this.valueOf() : this.toString()
+        //}
         toString() {
             return this[Symbol.toStringTag] || this.constructor.name + '<>';
         }
@@ -464,6 +473,7 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    /** Generates unique identifier. */
     function $mol_guid(length = 8, exists = () => false) {
         for (;;) {
             let id = Math.random().toString(36).substring(2, length + 2).toUpperCase();
@@ -479,11 +489,16 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    /** Special status statuses. */
     let $mol_wire_cursor;
     (function ($mol_wire_cursor) {
+        /** Update required. */
         $mol_wire_cursor[$mol_wire_cursor["stale"] = -1] = "stale";
+        /** Some of (transitive) pub update required. */
         $mol_wire_cursor[$mol_wire_cursor["doubt"] = -2] = "doubt";
+        /** Actual state but may be dropped. */
         $mol_wire_cursor[$mol_wire_cursor["fresh"] = -3] = "fresh";
+        /** State will never be changed. */
         $mol_wire_cursor[$mol_wire_cursor["final"] = -4] = "final";
     })($mol_wire_cursor = $.$mol_wire_cursor || ($.$mol_wire_cursor = {}));
 })($ || ($ = {}));
@@ -492,6 +507,9 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    /**
+     * Collects subscribers in compact array. 28B
+     */
     class $mol_wire_pub extends Object {
         constructor(id = `$mol_wire_pub:${$mol_guid()}`) {
             super();
@@ -499,10 +517,17 @@ var $;
         }
         [Symbol.toStringTag];
         data = [];
+        // Derived objects should be Arrays.
         static get [Symbol.species]() {
             return Array;
         }
-        sub_from = 0;
+        /**
+         * Index of first subscriber.
+         */
+        sub_from = 0; // 4B
+        /**
+         * All current subscribers.
+         */
         get sub_list() {
             const res = [];
             for (let i = this.sub_from; i < this.data.length; i += 2) {
@@ -510,14 +535,23 @@ var $;
             }
             return res;
         }
+        /**
+         * Has any subscribers or not.
+         */
         get sub_empty() {
             return this.sub_from === this.data.length;
         }
+        /**
+         * Subscribe subscriber to this publisher events and return position of subscriber that required to unsubscribe.
+         */
         sub_on(sub, pub_pos) {
             const pos = this.data.length;
             this.data.push(sub, pub_pos);
             return pos;
         }
+        /**
+         * Unsubscribe subscriber from this publisher events by subscriber position provided by `on(pub)`.
+         */
         sub_off(sub_pos) {
             if (!(sub_pos < this.data.length)) {
                 $mol_fail(new Error(`Wrong pos ${sub_pos}`));
@@ -530,21 +564,39 @@ var $;
             if (end === this.sub_from)
                 this.reap();
         }
+        /**
+         * Called when last sub was unsubscribed.
+         **/
         reap() { }
+        /**
+         * Autowire this publisher with current subscriber.
+         **/
         promote() {
             $mol_wire_auto()?.track_next(this);
         }
+        /**
+         * Enforce actualization. Should not throw errors.
+         */
         fresh() { }
+        /**
+         * Allow to put data to caches in the subtree.
+         */
         complete() { }
         get incompleted() {
             return false;
         }
+        /**
+         * Notify subscribers about self changes.
+         */
         emit(quant = $mol_wire_cursor.stale) {
             for (let i = this.sub_from; i < this.data.length; i += 2) {
                 ;
                 this.data[i].absorb(quant, this.data[i + 1]);
             }
         }
+        /**
+         * Moves peer from one position to another. Doesn't clear data at old position!
+         */
         peer_move(from_pos, to_pos) {
             const peer = this.data[from_pos];
             const self_pos = this.data[from_pos + 1];
@@ -552,6 +604,9 @@ var $;
             this.data[to_pos + 1] = self_pos;
             peer.peer_repos(self_pos, to_pos);
         }
+        /**
+         * Updates self position in the peer.
+         */
         peer_repos(peer_pos, self_pos) {
             this.data[peer_pos + 1] = self_pos;
         }
@@ -567,10 +622,16 @@ var $;
 var $;
 (function ($) {
     $.$mol_wire_auto_sub = null;
+    /**
+     * When fulfilled, all publishers are promoted to this subscriber on access to its.
+     */
     function $mol_wire_auto(next = $.$mol_wire_auto_sub) {
         return $.$mol_wire_auto_sub = next;
     }
     $.$mol_wire_auto = $mol_wire_auto;
+    /**
+     * Affection queue. Used to prevent accidental stack overflow on emit.
+     */
     $.$mol_wire_affected = [];
 })($ || ($ = {}));
 
@@ -578,6 +639,7 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    // https://docs.google.com/document/d/1FTascZXT9cxfetuPRT2eXPQKXui4nWFivUnS_335T3U/preview#
     $['devtoolsFormatters'] ||= [];
     function $mol_dev_format_register(config) {
         $['devtoolsFormatters'].push(config);
@@ -629,6 +691,7 @@ var $;
                 return false;
             if (!val)
                 return false;
+            // if( Error.isError( val ) ) true
             if (val[$.$mol_dev_format_body])
                 return true;
             return false;
@@ -646,12 +709,16 @@ var $;
                     return $.$mol_dev_format_accent($mol_dev_format_native(val), '💨', $mol_dev_format_native(error), '');
                 }
             }
+            // if( Error.isError( val ) ) {
+            // 	return $mol_dev_format_native( val )
+            // }
             return null;
         },
     });
     function $mol_dev_format_native(obj) {
         if (typeof obj === 'undefined')
             return $.$mol_dev_format_shade('undefined');
+        // if( ![ 'object', 'function', 'symbol' ].includes( typeof obj )  ) return obj
         return [
             'object',
             {
@@ -706,9 +773,18 @@ var $;
         'color': 'gray',
     });
     $.$mol_dev_format_indent = $.$mol_dev_format_div.bind(null, {
-        'margin-left': '13px'
+        'margin-inline-start': '13px'
     });
     class Stack extends Array {
+        // [ Symbol.toPrimitive ]() {
+        // 	return this.toString()
+        // }
+        match(...args) {
+            return this.toString().match(...args);
+        }
+        split(...args) {
+            return this.toString().split(...args);
+        }
         toString() {
             return this.join('\n');
         }
@@ -731,6 +807,7 @@ var $;
             this.method = call.getMethodName() ?? '';
             if (this.method === this.function)
                 this.method = '';
+            // const func = c.getFunction()
             this.pos = [call.getEnclosingLineNumber() ?? 0, call.getEnclosingColumnNumber() ?? 0];
             this.eval = call.getEvalOrigin() ?? '';
             this.source = call.getScriptNameOrSourceURL() ?? '';
@@ -777,9 +854,16 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    /**
+     * Publisher that can auto collect other publishers. 32B
+     *
+     * 	P1 P2 P3 P4 S1 S2 S3
+     * 	^           ^
+     * 	pubs_from   subs_from
+     */
     class $mol_wire_pub_sub extends $mol_wire_pub {
-        pub_from = 0;
-        cursor = $mol_wire_cursor.stale;
+        pub_from = 0; // 4B
+        cursor = $mol_wire_cursor.stale; // 4B
         get temp() {
             return false;
         }
@@ -897,10 +981,27 @@ var $;
                 return;
             this.cursor = quant;
             this.emit($mol_wire_cursor.doubt);
+            // if( pos >= 0 && pos < this.sub_from - 2 ) {
+            // 	const pub = this.data[ pos ] as $mol_wire_pub
+            // 	if( pub instanceof $mol_wire_task ) return
+            // 	for(
+            // 		let cursor = this.pub_from;
+            // 		cursor < this.sub_from;
+            // 		cursor += 2
+            // 	) {
+            // 		const pub = this.data[ cursor ] as $mol_wire_pub
+            // 		if( pub instanceof $mol_wire_task ) {
+            // 			pub.destructor()
+            // 		}
+            // 	}
+            // }
         }
         [$mol_dev_format_head]() {
             return $mol_dev_format_native(this);
         }
+        /**
+         * Is subscribed to any publisher or not.
+         */
         get pub_empty() {
             return this.sub_from === this.pub_from;
         }
@@ -941,6 +1042,13 @@ var $;
 var $;
 (function ($) {
     const wrappers = new WeakMap();
+    /**
+     * Suspendable task with support both sync/async api.
+     *
+     * 	A1 A2 A3 A4 P1 P2 P3 P4 S1 S2 S3
+     * 	^           ^           ^
+     * 	args_from   pubs_from   subs_from
+     **/
     class $mol_wire_fiber extends $mol_wire_pub_sub {
         task;
         host;
@@ -961,6 +1069,7 @@ var $;
             });
         }
         static sync() {
+            // Sync whole fiber graph
             while (this.planning.size) {
                 for (const fiber of this.planning) {
                     this.planning.delete(fiber);
@@ -971,6 +1080,7 @@ var $;
                     fiber.fresh();
                 }
             }
+            // Collect garbage
             while (this.reaping.size) {
                 const fibers = this.reaping;
                 this.reaping = new Set;
@@ -1122,6 +1232,10 @@ var $;
             this.cursor = $mol_wire_cursor.stale;
             this.fresh();
         }
+        /**
+         * Synchronous execution. Throws Promise when waits async task (SuspenseAPI provider).
+         * Should be called inside SuspenseAPI consumer (ie fiber).
+         */
         sync() {
             if (!$mol_wire_fiber.warm) {
                 return this.result();
@@ -1136,6 +1250,10 @@ var $;
             }
             return this.cache;
         }
+        /**
+         * Asynchronous execution.
+         * It's SuspenseAPI consumer. So SuspenseAPI providers can be called inside.
+         */
         async async_raw() {
             while (true) {
                 this.fresh();
@@ -1148,6 +1266,7 @@ var $;
                 if (!$mol_promise_like(this.cache))
                     return this.cache;
                 if (this.cursor === $mol_wire_cursor.final) {
+                    // never ends on destructed fiber
                     await new Promise(() => { });
                 }
             }
@@ -1195,6 +1314,10 @@ var $;
 var $;
 (function ($) {
     $.$mol_compare_deep_cache = new WeakMap();
+    /**
+     * Deeply compares two values. Returns true if equal.
+     * Define `Symbol.toPrimitive` to customize.
+     */
     function $mol_compare_deep(left, right) {
         if (Object.is(left, right))
             return true;
@@ -1334,6 +1457,7 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    /** Log begin of collapsed group only when some logged inside, returns func to close group */
     function $mol_log3_area_lazy(event) {
         const self = this.$;
         const stack = self.$mol_log3_stack;
@@ -1358,6 +1482,7 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    /** Position in any resource. */
     class $mol_span extends $mol_object2 {
         uri;
         source;
@@ -1373,13 +1498,17 @@ var $;
             this.length = length;
             this[Symbol.toStringTag] = this.uri + ('#' + this.row + ':' + this.col + '/' + this.length);
         }
+        /** Span for begin of unknown resource */
         static unknown = $mol_span.begin('?');
+        /** Makes new span for begin of resource. */
         static begin(uri, source = '') {
             return new $mol_span(uri, source, 1, 1, 0);
         }
+        /** Makes new span for end of resource. */
         static end(uri, source) {
             return new $mol_span(uri, source, 1, source.length + 1, 0);
         }
+        /** Makes new span for entire resource. */
         static entire(uri, source) {
             return new $mol_span(uri, source, 1, 1, source.length);
         }
@@ -1394,15 +1523,19 @@ var $;
                 length: this.length
             };
         }
+        /** Makes new error for this span. */
         error(message, Class = Error) {
             return new Class(`${message} (${this})`);
         }
+        /** Makes new span for same uri. */
         span(row, col, length) {
             return new $mol_span(this.uri, this.source, row, col, length);
         }
+        /** Makes new span after end of this. */
         after(length = 0) {
             return new $mol_span(this.uri, this.source, this.row, this.col + this.length, length);
         }
+        /** Makes new span between begin and end. */
         slice(begin, end = -1) {
             let len = this.length;
             if (begin < 0)
@@ -1425,6 +1558,7 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    /** Serializes tree to string in tree format. */
     function $mol_tree2_to_string(tree) {
         let output = [];
         function dump(tree, prefix = '') {
@@ -1468,12 +1602,25 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    /**
+     * Abstract Syntax Tree with human readable serialization.
+     * Avoid direct instantiation. Use static factories instead.
+     * @see https://github.com/nin-jin/tree.d
+     */
     class $mol_tree2 extends Object {
         type;
         value;
         kids;
         span;
-        constructor(type, value, kids, span) {
+        constructor(
+        /** Type of structural node, `value` should be empty */
+        type, 
+        /** Content of data node, `type` should be empty */
+        value, 
+        /** Child nodes */
+        kids, 
+        /** Position in most far source resource */
+        span) {
             super();
             this.type = type;
             this.value = value;
@@ -1481,12 +1628,15 @@ var $;
             this.span = span;
             this[Symbol.toStringTag] = type || '\\' + value;
         }
+        /** Makes collection node. */
         static list(kids, span = $mol_span.unknown) {
             return new $mol_tree2('', '', kids, span);
         }
+        /** Makes new derived collection node. */
         list(kids) {
             return $mol_tree2.list(kids, this.span);
         }
+        /** Makes data node for any string. */
         static data(value, kids = [], span = $mol_span.unknown) {
             const chunks = value.split('\n');
             if (chunks.length > 1) {
@@ -1500,21 +1650,26 @@ var $;
             }
             return new $mol_tree2('', value, kids, span);
         }
+        /** Makes new derived data node. */
         data(value, kids = []) {
             return $mol_tree2.data(value, kids, this.span);
         }
+        /** Makes struct node. */
         static struct(type, kids = [], span = $mol_span.unknown) {
             if (/[ \n\t\\]/.test(type)) {
                 $$.$mol_fail(span.error(`Wrong type ${JSON.stringify(type)}`));
             }
             return new $mol_tree2(type, '', kids, span);
         }
+        /** Makes new derived structural node. */
         struct(type, kids = []) {
             return $mol_tree2.struct(type, kids, this.span);
         }
+        /** Makes new derived node with different kids id defined. */
         clone(kids, span = this.span) {
             return new $mol_tree2(this.type, this.value, kids, span);
         }
+        /** Returns multiline text content. */
         text() {
             var values = [];
             for (var kid of this.kids) {
@@ -1524,15 +1679,20 @@ var $;
             }
             return this.value + values.join('\n');
         }
+        /** Parses tree format. */
+        /** @deprecated Use $mol_tree2_from_string */
         static fromString(str, uri = 'unknown') {
             return $$.$mol_tree2_from_string(str, uri);
         }
+        /** Serializes to tree format. */
         toString() {
             return $$.$mol_tree2_to_string(this);
         }
+        /** Makes new tree with node overrided by path. */
         insert(value, ...path) {
             return this.update($mol_maybe(value), ...path)[0];
         }
+        /** Makes new tree with node overrided by path. */
         update(value, ...path) {
             if (path.length === 0)
                 return value;
@@ -1565,6 +1725,7 @@ var $;
                 return [this.clone(kids)];
             }
         }
+        /** Query nodes by path. */
         select(...path) {
             let next = [this];
             for (const type of path) {
@@ -1591,6 +1752,7 @@ var $;
             }
             return this.list(next);
         }
+        /** Filter kids by path or value. */
         filter(path, value) {
             const sub = this.kids.filter(item => {
                 var found = item.select(...path);
@@ -1618,9 +1780,11 @@ var $;
                 $mol_fail_hidden(error);
             }
         }
+        /** Transform tree through context with transformers */
         hack(belt, context = {}) {
             return [].concat(...this.kids.map(child => child.hack_self(belt, context)));
         }
+        /** Makes Error with node coordinates. */
         error(message, Class = Error) {
             return this.span.error(`${message}\n${this.clone([])}`, Class);
         }
@@ -1638,6 +1802,7 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    /** Syntax error with cordinates and source line snippet. */
     class $mol_error_syntax extends SyntaxError {
         reason;
         line;
@@ -1656,6 +1821,7 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    /** Parses tree format from string. */
     function $mol_tree2_from_string(str, uri = '?') {
         const span = $mol_span.entire(uri, str);
         var root = $mol_tree2.list([], span);
@@ -1665,6 +1831,7 @@ var $;
             var indent = 0;
             var line_start = pos;
             row++;
+            // read indent
             while (str.length > pos && str[pos] == '\t') {
                 indent++;
                 pos++;
@@ -1673,8 +1840,10 @@ var $;
                 min_indent = indent;
             }
             indent -= min_indent;
+            // invalid tab size
             if (indent < 0 || indent >= stack.length) {
                 const sp = span.span(row, 1, pos - line_start);
+                // skip error line
                 while (str.length > pos && str[pos] != '\n') {
                     pos++;
                 }
@@ -1689,7 +1858,9 @@ var $;
             }
             stack.length = indent + 1;
             var parent = stack[indent];
+            // parse types
             while (str.length > pos && str[pos] != '\\' && str[pos] != '\n') {
+                // type can not contain space and tab
                 var error_start = pos;
                 while (str.length > pos && (str[pos] == ' ' || str[pos] == '\t')) {
                     pos++;
@@ -1701,6 +1872,7 @@ var $;
                     const sp = span.span(row, error_start - line_start + 1, pos - error_start);
                     this.$mol_fail(new this.$mol_error_syntax(`Wrong nodes separator`, str.substring(line_start, line_end), sp));
                 }
+                // read type
                 var type_start = pos;
                 while (str.length > pos &&
                     str[pos] != '\\' &&
@@ -1715,10 +1887,12 @@ var $;
                     parent_kids.push(next);
                     parent = next;
                 }
+                // read one space if exists
                 if (str.length > pos && str[pos] == ' ') {
                     pos++;
                 }
             }
+            // read data
             if (str.length > pos && str[pos] == '\\') {
                 var data_start = pos;
                 while (str.length > pos && str[pos] != '\n') {
@@ -1729,6 +1903,7 @@ var $;
                 parent_kids.push(next);
                 parent = next;
             }
+            // now must be end of text
             if (str.length === pos && stack.length > 0) {
                 const sp = span.span(row, pos - line_start + 1, 1);
                 this.$mol_fail(new this.$mol_error_syntax(`Unexpected EOF, LF required`, str.substring(line_start, str.length), sp));
@@ -1821,6 +1996,7 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    /** Module for working with terminal. Text coloring when output in terminal */
     class $mol_term_color {
         static reset = this.ansi(0, 0);
         static bold = this.ansi(1, 22);
@@ -1892,6 +2068,7 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    /** One-shot fiber */
     class $mol_wire_task extends $mol_wire_fiber {
         static getter(task) {
             return function $mol_wire_task_get(host, args) {
@@ -1901,12 +2078,12 @@ var $;
                 reuse: if (existen) {
                     if (!existen.temp)
                         break reuse;
-                    if (existen.task !== task) {
-                        cause = 'task';
-                        break reuse;
-                    }
                     if (existen.host !== host) {
                         cause = 'host';
+                        break reuse;
+                    }
+                    if (existen.task !== task) {
+                        cause = 'task';
                         break reuse;
                     }
                     if (!$mol_compare_deep(existen.args, args)) {
@@ -1917,6 +2094,7 @@ var $;
                 }
                 const key = (host?.[Symbol.toStringTag] ?? host) + ('.' + task.name + '<#>');
                 const next = new $mol_wire_task(key, task, host, args);
+                // Disabled because non-idempotency is required for try-catch
                 if (existen?.temp) {
                     $$.$mol_log3_warn({
                         place: '$mol_wire_task',
@@ -1949,7 +2127,7 @@ var $;
                     try {
                         next[Symbol.toStringTag] = this[Symbol.toStringTag];
                     }
-                    catch {
+                    catch { // Promises throw in strict mode
                         Object.defineProperty(next, Symbol.toStringTag, { value: this[Symbol.toStringTag] });
                     }
                 }
@@ -2002,6 +2180,10 @@ var $;
         props[field] = get_val;
         return get_val;
     }
+    /**
+     * Convert asynchronous (promise-based) API to synchronous by wrapping function and method calls in a fiber.
+     * @see https://mol.hyoo.ru/#!section=docs/=1fcpsq_1wh0h2
+     */
     function $mol_wire_sync(obj) {
         return new Proxy(obj, {
             get(obj, field) {
@@ -2156,7 +2338,7 @@ var $;
 "use strict";
 var $;
 (function ($) {
-    $.$mol_dom_context = new $node.jsdom.JSDOM('', { url: 'https://localhost/' }).window;
+    $.$mol_dom_context = new $node.jsdom.JSDOM('', { url: `http://${process.env.DOMAIN || 'localhost'}/` }).window;
 })($ || ($ = {}));
 
 ;
@@ -2243,6 +2425,10 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    /**
+     * CSS Units
+     * @see https://mol.hyoo.ru/#!section=docs/=xwq9q5_f966fg
+     */
     class $mol_style_unit extends $mol_decor {
         literal;
         constructor(value, literal) {
@@ -2289,6 +2475,10 @@ var $;
 var $;
 (function ($) {
     const { per } = $mol_style_unit;
+    /**
+     * CSS Functions
+     * @see https://mol.hyoo.ru/#!section=docs/=xwq9q5_f966fg
+     */
     class $mol_style_func extends $mol_decor {
         name;
         constructor(name, value) {
@@ -2383,6 +2573,7 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    /** Create record of CSS variables. */
     function $mol_style_prop(prefix, keys) {
         const record = keys.reduce((rec, key) => {
             rec[key] = $mol_style_func.vary(`--${prefix}_${key}`);
@@ -2397,6 +2588,10 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    /**
+     * Theme css variables
+     * @see https://mol.hyoo.ru/#!section=demos/demo=mol_textarea_demo
+     */
     $.$mol_theme = $mol_style_prop('mol_theme', [
         'back',
         'hover',
@@ -2425,11 +2620,18 @@ var $;
 
 ;
 "use strict";
+// namespace $ {
+// 	$mol_style_attach( '$mol_theme_lights', `:root { --mol_theme_back: oklch( ${ $$.$mol_lights() ? 92 : 20 }% .01 var(--mol_theme_hue) ) }` )
+// }
 
 ;
 "use strict";
 var $;
 (function ($) {
+    /**
+     * Gap in CSS
+     * @see https://page.hyoo.ru/#!=msdb74_bm7nsq
+     */
     $.$mol_gap = $mol_style_prop('mol_gap', [
         'page',
         'block',
@@ -2519,6 +2721,12 @@ var $;
         createDocumentFragment: () => $mol_dom_context.document.createDocumentFragment(),
     };
     $.$mol_jsx_frag = '';
+    /**
+     * JSX adapter that makes DOM tree.
+     * Generates global unique ids for every DOM-element by components tree with ids.
+     * Ensures all local ids are unique.
+     * Can reuse an existing nodes by GUIDs when used inside [`mol_jsx_attach`](https://github.com/hyoo-ru/mam_mol/tree/master/jsx/attach).
+     */
     function $mol_jsx(Elem, props, ...childNodes) {
         const id = props && props.id || '';
         const guid = id ? $.$mol_jsx_prefix ? $.$mol_jsx_prefix + '/' + id : id : $.$mol_jsx_prefix;
@@ -2647,6 +2855,7 @@ var $;
 var $;
 (function ($) {
     const TypedArray = Object.getPrototypeOf(Uint8Array);
+    /** Returns string key for any value. */
     function $mol_key(value) {
         primitives: {
             if (typeof value === 'bigint')
@@ -2654,9 +2863,9 @@ var $;
             if (typeof value === 'symbol')
                 return `Symbol(${value.description})`;
             if (!value)
-                return JSON.stringify(value);
+                return JSON.stringify(value); // 0, null, ""
             if (typeof value !== 'object' && typeof value !== 'function')
-                return JSON.stringify(value);
+                return JSON.stringify(value); // boolean, number, string
         }
         caching: {
             let key = $mol_key_store.get(value);
@@ -2733,6 +2942,9 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    /**
+     * Decorates method to fiber to ensure it is executed only once inside other fiber.
+     */
     function $mol_wire_method(host, field, descr) {
         if (!descr)
             descr = Reflect.getOwnPropertyDescriptor(host, field);
@@ -2765,6 +2977,7 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    /** Long-living fiber. */
     class $mol_wire_atom extends $mol_wire_fiber {
         static solo(host, task) {
             const field = task.name + '()';
@@ -2815,7 +3028,11 @@ var $;
             }
             $mol_wire_atom.watching.add(this);
         }
+        /**
+         * Update atom value through another temp fiber.
+         */
         resync(args) {
+            // enforce pulling tasks abort
             for (let cursor = this.pub_from; cursor < this.sub_from; cursor += 2) {
                 const pub = this.data[cursor];
                 if (pub && pub instanceof $mol_wire_task) {
@@ -2876,7 +3093,7 @@ var $;
                     try {
                         next[Symbol.toStringTag] = this[Symbol.toStringTag];
                     }
-                    catch {
+                    catch { // Promises throw in strict mode
                         Object.defineProperty(next, Symbol.toStringTag, { value: this[Symbol.toStringTag] });
                     }
                 }
@@ -2904,6 +3121,7 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    /** Decorates solo object channel to [mol_wire_atom](../atom/atom.ts). */
     function $mol_wire_solo(host, field, descr) {
         if (!descr)
             descr = Reflect.getOwnPropertyDescriptor(host, field);
@@ -2942,6 +3160,7 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    /** Reactive memoizing multiplexed property decorator. */
     function $mol_wire_plex(host, field, descr) {
         if (!descr)
             descr = Reflect.getOwnPropertyDescriptor(host, field);
@@ -2980,7 +3199,25 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    /**
+     * Reactive memoizing solo property decorator from [mol_wire](../wire/README.md)
+     * @example
+     * '@' $mol_mem
+     * name(next?: string) {
+     * 	return next ?? 'default'
+     * }
+     * @see https://mol.hyoo.ru/#!section=docs/=qxmh6t_sinbmb
+     */
     $.$mol_mem = $mol_wire_solo;
+    /**
+     * Reactive memoizing multiplexed property decorator [mol_wire](../wire/README.md)
+     * @example
+     * '@' $mol_mem_key
+     * name(id: number, next?: string) {
+     *  return next ?? 'default'
+     * }
+     * @see https://mol.hyoo.ru/#!section=docs/=qxmh6t_sinbmb
+     */
     $.$mol_mem_key = $mol_wire_plex;
 })($ || ($ = {}));
 
@@ -3077,10 +3314,10 @@ var $;
         static wrap(task) {
             const store = new WeakMap();
             const fun = function (next) {
-                if (next === undefined && store.has(this))
-                    return store.get(this);
+                if (next === undefined && store.has(this ?? fun))
+                    return store.get(this ?? fun);
                 const val = task.call(this, next) ?? next;
-                store.set(this, val);
+                store.set(this ?? fun, val);
                 return val;
             };
             Reflect.defineProperty(fun, 'name', { value: task.name + ' ' });
@@ -3104,6 +3341,7 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    /** Run code without state changes */
     function $mol_wire_probe(task, def) {
         const warm = $mol_wire_fiber.warm;
         try {
@@ -3124,6 +3362,10 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    /**
+     * Real-time refresh current atom.
+     * Don't use if possible. May reduce performance.
+     */
     function $mol_wire_watch() {
         const atom = $mol_wire_auto();
         if (atom instanceof $mol_wire_atom) {
@@ -3140,6 +3382,11 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    /**
+     * Returns closure that returns constant value.
+     * @example
+     * const rnd = $mol_const( Math.random() )
+     */
     function $mol_const(value) {
         const getter = (() => value);
         getter['()'] = value;
@@ -3154,6 +3401,9 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    /**
+     * Disable reaping of current subscriber
+     */
     function $mol_wire_solid() {
         let current = $mol_wire_auto();
         if (current.temp)
@@ -3257,6 +3507,7 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    /** Convert a pseudo-synchronous (Suspense API) API to an explicit asynchronous one (for integrating with external systems). */
     function $mol_wire_async(obj) {
         let fiber;
         const temp = $mol_wire_task.getter(obj);
@@ -3293,11 +3544,12 @@ var $;
 "use strict";
 var $;
 (function ($) {
-    $mol_style_attach("mol/view/view/view.css", "@view-transition {\n\tnavigation: auto;\n}\n\n[mol_view] {\n\ttransition-property: height, width, min-height, min-width, max-width, max-height, transform, scale, translate, rotate;\n\ttransition-duration: .2s;\n\ttransition-timing-function: ease-out;\n\t-webkit-appearance: none;\n\tbox-sizing: border-box;\n\tdisplay: flex;\n\tflex-shrink: 0;\n\tcontain: style;\n\tscrollbar-color: var(--mol_theme_line) transparent;\n\tscrollbar-width: thin;\n}\t\n\n[mol_view]::selection {\n\tbackground: var(--mol_theme_line);\n}\t\n\n[mol_view]::-webkit-scrollbar {\n\twidth: .25rem;\n\theight: .25rem;\n}\n\n[mol_view]::-webkit-scrollbar-corner {\n\tbackground-color: var(--mol_theme_line);\n}\n\n[mol_view]::-webkit-scrollbar-track {\n\tbackground-color: transparent;\n}\n\n[mol_view]::-webkit-scrollbar-thumb {\n\tbackground-color: var(--mol_theme_line);\n\tborder-radius: var(--mol_gap_round);\n}\n\n[mol_view] > * {\n\tword-break: inherit;\n}\n\n[mol_view_root] {\n\tmargin: 0;\n\tpadding: 0;\n\twidth: 100%;\n\theight: 100%;\n\tbox-sizing: border-box;\n\tfont-family: system-ui, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;\n\tfont-size: 1rem;\n\tline-height: 1.5rem;\n\t/* background: var(--mol_theme_back);\n\tcolor: var(--mol_theme_text); */\n\tcontain: unset; /** Fixes bg ignoring when applied to body on Chrome */\n\ttab-size: 4;\n\t/*overscroll-behavior: contain; /** Disable navigation gestures **/\n}\n\n@media print {\n\t[mol_view_root] {\n\t\theight: auto;\n\t}\n}\n[mol_view][mol_view_error]:not([mol_view_error=\"Promise\"], [mol_view_error=\"$mol_promise_blocker\"]) {\n\tbackground-image: repeating-linear-gradient(\n\t\t-45deg,\n\t\t#f92323,\n\t\t#f92323 .5rem,\n\t\t#ff3d3d .5rem,\n\t\t#ff3d3d 1.5rem\n\t);\n\tcolor: black;\n\talign-items: center;\n\tjustify-content: center;\n}\n\n@keyframes mol_view_wait {\n\tfrom {\n\t\topacity: .25;\n\t}\n\t20% {\n\t\topacity: .75;\n\t}\n\tto {\n\t\topacity: .25;\n\t}\n}\n\n:where([mol_view][mol_view_error=\"$mol_promise_blocker\"]),\n:where([mol_view][mol_view_error=\"Promise\"]) {\n\tbackground: var(--mol_theme_hover);\n}\n\n[mol_view][mol_view_error=\"Promise\"] {\n\tanimation: mol_view_wait 1s steps(20,end) infinite;\n}\n");
+    $mol_style_attach("mol/view/view/view.css", "@view-transition {\n\tnavigation: auto;\n}\n\n[mol_view] {\n\ttransition-property: height, width, min-height, min-width, max-width, max-height, transform, scale, translate, rotate;\n\ttransition-duration: .2s;\n\ttransition-timing-function: ease-out;\n\t-webkit-appearance: none;\n\tbox-sizing: border-box;\n\tdisplay: flex;\n\tflex-shrink: 0;\n\tcontain: style;\n\tscrollbar-color: var(--mol_theme_line) transparent;\n\tscrollbar-width: thin;\n\t/* text-wrap-style: pretty; dont work in textarea */\n\tunicode-bidi: plaintext\n}\n\n[mol_view]::selection {\n\tbackground: var(--mol_theme_line);\n}\t\n\n[mol_view]::-webkit-scrollbar {\n\twidth: .25rem;\n\theight: .25rem;\n}\n\n[mol_view]::-webkit-scrollbar-corner {\n\tbackground-color: var(--mol_theme_line);\n}\n\n[mol_view]::-webkit-scrollbar-track {\n\tbackground-color: transparent;\n}\n\n[mol_view]::-webkit-scrollbar-thumb {\n\tbackground-color: var(--mol_theme_line);\n\tborder-radius: var(--mol_gap_round);\n}\n\n[mol_view] > * {\n\tword-break: inherit;\n}\n\n[mol_view_root] {\n\tmargin: 0;\n\tpadding: 0;\n\twidth: 100%;\n\theight: 100%;\n\tbox-sizing: border-box;\n\tfont-family: system-ui, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;\n\tfont-size: 1rem;\n\tline-height: 1.5rem;\n\t/* background: var(--mol_theme_back);\n\tcolor: var(--mol_theme_text); */\n\tcontain: unset; /** Fixes bg ignoring when applied to body on Chrome */\n\ttab-size: 4;\n\t/*overscroll-behavior: contain; /** Disable navigation gestures **/\n}\n\n@media print {\n\t[mol_view_root] {\n\t\theight: auto;\n\t}\n}\n[mol_view][mol_view_error]:not([mol_view_error=\"Promise\"], [mol_view_error=\"$mol_promise_blocker\"]) {\n\tbackground-image: repeating-linear-gradient(\n\t\t-45deg,\n\t\t#f92323,\n\t\t#f92323 .5rem,\n\t\t#ff3d3d .5rem,\n\t\t#ff3d3d 1.5rem\n\t);\n\tcolor: black;\n\talign-items: center;\n\tjustify-content: center;\n}\n\n@keyframes mol_view_wait {\n\tfrom {\n\t\topacity: .25;\n\t}\n\t20% {\n\t\topacity: .75;\n\t}\n\tto {\n\t\topacity: .25;\n\t}\n}\n\n:where([mol_view][mol_view_error=\"$mol_promise_blocker\"]),\n:where([mol_view][mol_view_error=\"Promise\"]) {\n\tbackground: var(--mol_theme_hover);\n}\n\n[mol_view][mol_view_error=\"Promise\"] {\n\tanimation: mol_view_wait 1s steps(20,end) infinite;\n}\n");
 })($ || ($ = {}));
 
 ;
 "use strict";
+/** @jsx $mol_jsx */
 var $;
 (function ($) {
     function $mol_view_visible_width() {
@@ -3312,6 +3564,11 @@ var $;
         return suffix;
     }
     $.$mol_view_state_key = $mol_view_state_key;
+    /**
+     * The base class for all visual components. It provides the infrastructure for reactive lazy rendering, handling exceptions.
+     * @see https://mol.hyoo.ru/#!section=docs/=vv2nig_s5zr0f
+     */
+    /// Reactive statefull lazy ViewModel
     class $mol_view extends $mol_object {
         static Root(id) {
             return new this;
@@ -3376,16 +3633,22 @@ var $;
         state_key(suffix = '') {
             return this.$.$mol_view_state_key(suffix);
         }
+        /// Name of element that created when element not found in DOM
         dom_name() {
             return $mol_dom_qname(this.constructor.toString()) || 'div';
         }
+        /// NameSpace of element that created when element not found in DOM
         dom_name_space() { return 'http://www.w3.org/1999/xhtml'; }
+        /// Raw child views
         sub() {
             return [];
         }
+        /// Visible sub views with defined ambient context
+        /// Render all by default
         sub_visible() {
             return this.sub();
         }
+        /// Minimal width that used for lazy rendering
         minimal_width() {
             let min = 0;
             try {
@@ -3407,6 +3670,7 @@ var $;
         maximal_width() {
             return this.minimal_width();
         }
+        /// Minimal height that used for lazy rendering
         minimal_height() {
             let min = 0;
             try {
@@ -3426,11 +3690,11 @@ var $;
         view_rect() {
             if ($mol_wire_probe(() => this.view_rect()) === undefined) {
                 $mol_wire_watch();
-                return null;
+                return null; // don't touch DOM to prevent instant reflow
             }
             else {
                 const { width, height, left, right, top, bottom } = this.dom_node().getBoundingClientRect();
-                return { width, height, left, right, top, bottom };
+                return { width, height, left, right, top, bottom }; // pick to optimize compare
             }
         }
         dom_id() {
@@ -3620,6 +3884,7 @@ var $;
         [$mol_dev_format_head]() {
             return $mol_dev_format_span({}, $mol_dev_format_native(this));
         }
+        /** Deep search view by predicate. */
         *view_find(check, path = []) {
             if (path.length === 0 && check(this))
                 return yield [this];
@@ -3648,6 +3913,7 @@ var $;
                 $mol_fail_log(error);
             }
         }
+        /** Renders path of views to DOM. */
         force_render(path) {
             const kids = this.sub();
             const index = kids.findIndex(item => {
@@ -3662,6 +3928,7 @@ var $;
                 kids[index].force_render(path);
             }
         }
+        /** Renders view to DOM and scroll to it. */
         ensure_visible(view, align = "start") {
             const path = this.view_find(v => v === view).next().value;
             this.force_render(new Set(path));
@@ -3676,6 +3943,9 @@ var $;
             const win = this.$.$mol_dom_context;
             if (win.parent !== win.self && !win.document.hasFocus())
                 return;
+            // new this.$.$mol_after_frame( ()=> {
+            // 	this.dom_node().scrollIntoView({ block: 'start', inline: 'nearest' })
+            // } )
             new this.$.$mol_after_timeout(0, () => {
                 this.focused(true);
             });
@@ -3959,6 +4229,11 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    /**
+     * CSS in TS.
+     * Statically typed CSS style sheets. Following samples show which CSS code are generated from TS code.
+     * @see https://mol.hyoo.ru/#!section=docs/=xwq9q5_f966fg
+     */
     function $mol_style_define(Component, config) {
         return $mol_style_attach(Component.name, $mol_style_sheet(Component, config));
     }
@@ -3968,12 +4243,17 @@ var $;
 ;
 "use strict";
 
+
 ;
 "use strict";
 var $;
 (function ($) {
     var $$;
     (function ($$) {
+        /**
+         * Scrolling pane.
+         * @see https://mol.hyoo.ru/#!section=demos/demo=mol_scroll_demo
+         */
         class $mol_scroll extends $.$mol_scroll {
             scroll_top(next, cache) {
                 const el = this.dom_node();
@@ -4023,6 +4303,7 @@ var $;
                 direction: 'column',
                 grow: 1,
                 shrink: 1,
+                // basis: 0,
             },
             outline: 'none',
             align: {
@@ -4040,6 +4321,7 @@ var $;
             contain: 'content',
             '>': {
                 $mol_view: {
+                    // transform: 'translateZ(0)', // enforce gpu scroll in all agents
                     gridArea: '1/1',
                 },
             },
@@ -4156,6 +4438,7 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    /** Plugin is component without its own DOM element, but instead uses the owner DOM element */
     class $mol_plugin extends $mol_view {
         dom_node_external(next) {
             return next ?? $mol_owning_get(this).host.dom_node();
@@ -4169,6 +4452,7 @@ var $;
 
 ;
 "use strict";
+
 
 ;
 "use strict";
@@ -4190,6 +4474,8 @@ var $;
             maxHeight: per(100),
             boxSizing: 'border-box',
             color: $mol_theme.text,
+            // backdropFilter: blur( `3px` ), enforces layering
+            // zIndex: 0 ,
             ':focus': {
                 outline: 'none',
             },
@@ -4307,6 +4593,10 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    /**
+     * Theme css variables
+     * @see https://mol.hyoo.ru/#!section=demos/demo=mol_textarea_demo
+     */
     $.$bog_theme = $mol_style_prop('mol_theme', [
         'back',
         'background',
@@ -4323,6 +4613,10 @@ var $;
         'image',
         'spirit',
     ]);
+    /**
+     * Available theme names.
+     * Add new theme to theme.css and add its name here.
+     */
     $.$bog_theme_names = [
         '$mol_theme_giper_smash_dark',
         '$mol_theme_giper_smash_light',
@@ -4384,6 +4678,9 @@ var $;
 			if(next !== undefined) return next;
 			return null;
 		}
+		is_light_now(){
+			return false;
+		}
 		attr(){
 			return {"mol_theme": (this.theme())};
 		}
@@ -4399,78 +4696,108 @@ var $;
 "use strict";
 var $;
 (function ($) {
-    $.$mol_mem_persist = $mol_wire_solid;
-})($ || ($ = {}));
-
-;
-"use strict";
-var $;
-(function ($) {
-    $.$mol_mem_cached = $mol_wire_probe;
-})($ || ($ = {}));
-
-;
-"use strict";
-var $;
-(function ($) {
-    function $mol_wait_user_async() {
-        return new Promise(done => $mol_dom.addEventListener('click', function onclick() {
-            $mol_dom.removeEventListener('click', onclick);
-            done(null);
-        }));
-    }
-    $.$mol_wait_user_async = $mol_wait_user_async;
-    function $mol_wait_user() {
-        return this.$mol_wire_sync(this).$mol_wait_user_async();
-    }
-    $.$mol_wait_user = $mol_wait_user;
-})($ || ($ = {}));
-
-;
-"use strict";
-var $;
-(function ($) {
     class $mol_storage extends $mol_object2 {
-        static native() {
-            return this.$.$mol_dom_context.navigator.storage ?? {
-                persisted: async () => false,
-                persist: async () => false,
-                estimate: async () => ({}),
-                getDirectory: async () => null,
-            };
+        /** Is storage a long term. */
+        static persisted(next) {
+            return false;
         }
-        static persisted(next, cache) {
-            $mol_mem_persist();
-            if (cache)
-                return Boolean(next);
-            const native = this.native();
-            if (next && !$mol_mem_cached(() => this.persisted())) {
-                this.$.$mol_wait_user_async()
-                    .then(() => native.persist())
-                    .then(actual => {
-                    setTimeout(() => this.persisted(actual, 'cache'), 5000);
-                    if (actual)
-                        this.$.$mol_log3_done({ place: `$mol_storage`, message: `Persist: Yes` });
-                    else
-                        this.$.$mol_log3_fail({ place: `$mol_storage`, message: `Persist: No` });
-                });
+        /** Total storage quota in bytes. */
+        static total() {
+            return 0;
+        }
+        /** Total storage usage in bytes. */
+        static used() {
+            return 0;
+        }
+        /** Minimum available free space in bytes. */
+        static free() {
+            return this.total() - this.used();
+        }
+        /** Fulfillness of storage. */
+        static portion() {
+            const total = this.total();
+            if (!total)
+                return 1;
+            return this.used() / total;
+        }
+        /**
+         * Fulfillness logarithmic level.
+         * `0` - empty
+         * `1` - half free
+         * `2` - quart free
+         * `Infinity` - fulfilled
+         */
+        static level() {
+            return Math.floor(-Math.log2(1 - this.portion()));
+        }
+    }
+    $.$mol_storage = $mol_storage;
+})($ || ($ = {}));
+
+;
+"use strict";
+var $;
+(function ($) {
+    /** State of time moment */
+    class $mol_state_time extends $mol_object {
+        static task(precision, reset) {
+            if (precision) {
+                return new $mol_after_timeout(precision, () => this.task(precision, null));
             }
-            return next ?? $mol_wire_sync(native).persisted();
+            else {
+                return new $mol_after_frame(() => this.task(precision, null));
+            }
         }
-        static estimate() {
-            return $mol_wire_sync(this.native() ?? {}).estimate();
+        static now(precision) {
+            this.task(precision);
+            return Date.now();
         }
-        static dir() {
-            return $mol_wire_sync(this.native()).getDirectory();
+    }
+    __decorate([
+        $mol_mem_key
+    ], $mol_state_time, "task", null);
+    __decorate([
+        $mol_mem_key
+    ], $mol_state_time, "now", null);
+    $.$mol_state_time = $mol_state_time;
+})($ || ($ = {}));
+
+;
+"use strict";
+var $;
+(function ($) {
+    class $mol_storage_node extends $mol_storage {
+        static persisted() {
+            return true;
+        }
+        static stats() {
+            $mol_state_time.now(1000);
+            return $node.fs.statfsSync('.');
+        }
+        static total() {
+            const { blocks, bsize } = this.stats();
+            return blocks * bsize;
+        }
+        static used() {
+            const { blocks, bfree, bsize } = this.stats();
+            return (blocks - bfree) * bsize;
+        }
+        static free() {
+            const { bfree, bsize } = this.stats();
+            return bfree * bsize;
+        }
+        static portion() {
+            const { blocks, bfree } = this.stats();
+            if (!blocks)
+                return 1;
+            return (blocks - bfree) / blocks;
         }
     }
     __decorate([
         $mol_mem
-    ], $mol_storage, "native", null);
-    __decorate([
-        $mol_mem
-    ], $mol_storage, "persisted", null);
-    $.$mol_storage = $mol_storage;
+    ], $mol_storage_node, "stats", null);
+    $.$mol_storage_node = $mol_storage_node;
+    $.$mol_storage = $.$mol_storage_node;
 })($ || ($ = {}));
 
 ;
@@ -4537,6 +4864,10 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    /**
+     * Decorates method to fiber to ensure it is executed only once inside other fiber from [mol_wire](../wire/README.md)
+     * @see https://mol.hyoo.ru/#!section=docs/=1fcpsq_1wh0h2
+     */
     $.$mol_action = $mol_wire_method;
 })($ || ($ = {}));
 
@@ -4571,6 +4902,13 @@ var $;
         grab() { return $mol_wire_sync(this).wait(); }
     }
     $.$mol_lock = $mol_lock;
+})($ || ($ = {}));
+
+;
+"use strict";
+var $;
+(function ($) {
+    $.$mol_mem_cached = $mol_wire_probe;
 })($ || ($ = {}));
 
 ;
@@ -4613,7 +4951,8 @@ var $;
 "use strict";
 var $;
 (function ($) {
-    let buf = new Uint8Array(2 ** 12);
+    let buf = new Uint8Array(2 ** 12); // 4KB Mem Page
+    /** Temporary buffer. Recursive usage isn't supported. */
     function $mol_charset_buffer(size) {
         if (buf.byteLength < size)
             buf = new Uint8Array(size);
@@ -4635,19 +4974,19 @@ var $;
         let pos = from;
         for (let i = 0; i < str.length; i++) {
             let code = str.charCodeAt(i);
-            if (code < 0x80) {
+            if (code < 0x80) { // ASCII - 1 octet
                 buf[pos++] = code;
             }
-            else if (code < 0x800) {
+            else if (code < 0x800) { // 2 octet
                 buf[pos++] = 0xc0 | (code >> 6);
                 buf[pos++] = 0x80 | (code & 0x3f);
             }
-            else if (code < 0xd800 || code >= 0xe000) {
+            else if (code < 0xd800 || code >= 0xe000) { // 3 octet
                 buf[pos++] = 0xe0 | (code >> 12);
                 buf[pos++] = 0x80 | ((code >> 6) & 0x3f);
                 buf[pos++] = 0x80 | (code & 0x3f);
             }
-            else {
+            else { // surrogate pair
                 const point = ((code - 0xd800) << 10) + str.charCodeAt(++i) + 0x2400;
                 buf[pos++] = 0xf0 | (point >> 18);
                 buf[pos++] = 0x80 | ((point >> 12) & 0x3f);
@@ -4711,12 +5050,16 @@ var $;
 (function ($) {
     let file_modes;
     (function (file_modes) {
+        /** create if it doesn't already exist */
         file_modes[file_modes["create"] = $node.fs.constants.O_CREAT] = "create";
+        /** truncate to zero size if it already exists */
         file_modes[file_modes["exists_truncate"] = $node.fs.constants.O_TRUNC] = "exists_truncate";
+        /** throw exception if it already exists */
         file_modes[file_modes["exists_fail"] = $node.fs.constants.O_EXCL] = "exists_fail";
         file_modes[file_modes["read_only"] = $node.fs.constants.O_RDONLY] = "read_only";
         file_modes[file_modes["write_only"] = $node.fs.constants.O_WRONLY] = "write_only";
         file_modes[file_modes["read_write"] = $node.fs.constants.O_RDWR] = "read_write";
+        /** data will be appended to the end */
         file_modes[file_modes["append"] = $node.fs.constants.O_APPEND] = "append";
     })(file_modes || (file_modes = {}));
     function mode_mask(modes) {
@@ -4781,12 +5124,24 @@ var $;
         root() {
             const path = this.path();
             const base = this.constructor.base;
+            // Если путь выше или равен base или если parent такойже как и this - считаем это корнем
             return base.startsWith(path) || this == this.parent();
         }
         stat(next, virt) {
             const path = this.path();
             const parent = this.parent();
+            // Отслеживать проверку наличия родительской папки не стоит до корня диска
+            // Лучше ограничить mam-ом
             if (!this.root()) {
+                /*
+                Если parent папка удалилась, надо ресетнуть все объекты в ней на любой глубине.
+                Например, rm -rf с последующим git pull: parent папка может удалиться, потом создасться,
+                а текущая папка успеет только удалиться до момента выполнения stat.
+                Поэтому parent.exists() не запустит перевычисления, нужна именно parent.version()
+
+                Однако, parent.version() меняется не только при удалении, будет ложное срабатывание
+                С этим придется мириться, красивого решения пока нет.
+                */
                 parent.version();
             }
             parent.watcher();
@@ -4800,9 +5155,19 @@ var $;
             if (/([\/\\]\.|___$)/.test(path))
                 return;
             const file = this.relative(path.at(-1) === '/' ? path.slice(0, -1) : path);
+            // console.log(type, path)
+            // add (change): добавился файл - у parent надо обновить список sub, если он был заюзан
+            // change, unlink (rename): обновился или удалился файл - ресетим
+            // addDir (change), добавилась папка, у parent обновляем список директорий в sub
+            // дочерние ресетим
+            // unlinkDir (rename), удалилась папка, ресетим ее
+            // stat у всех дочерних обновится сам, т.к. связан с parent.version()
             this.changed.add(file);
             if (!this.watching)
                 return;
+            // throttle, пока события поступают не сбрасываем.
+            // аналог awaitWriteFinish из chokidar
+            // интервалы между change-сообщениями модифицируемого файла должны быть меньше watch_debounce
             this.frame?.destructor();
             this.frame = new this.$.$mol_after_timeout(this.watch_debounce(), () => {
                 if (!this.watching)
@@ -4811,8 +5176,16 @@ var $;
                 $mol_wire_async(this).flush();
             });
         }
+        /**
+         * Должно быть больше, чем время между событиями от вотчера при записи внешним процессом.
+         * Иначе запуск ресетов паралельно с изменением может привести к неконсистентности.
+         */
         static watch_debounce() { return 500; }
         static flush() {
+            // Пока flush работает, вотчер сюда не заходит, но может добавлять новые изменения
+            // на каждом перезапуске они применятся
+            // Пока run выполняется, изменения накапливаются, в конце run вызывается flush
+            // Пока применяются изменения, run должен ожидать конца flush
             for (const file of this.changed) {
                 const parent = file.parent();
                 try {
@@ -4827,16 +5200,32 @@ var $;
             }
             this.changed.clear();
             this.watching = true;
+            // this.watch_wd?.destructor()
+            // this.watch_wd = null
         }
         static watching = true;
         static lock = new $mol_lock;
         static watch_off(path) {
             this.watching = false;
+            // run должен ожидать конца flush
             this.flush();
             this.watching = false;
+            /*
+            watch запаздывает и событие может прилететь через 3 сек после окончания сайд эффекта
+            поэтому добавляем папку, которую меняет side_effect
+            Когда дойдет до выполнения flush, он ресетнет ее
+            
+            Иначе будут лишние срабатывания
+            Например, удалили hyoo/board, watch ресетит и exists начинает отдавать false, срабатывает git clone
+            Сразу после него событие addDir еще не успело прийти,
+            на следующем перезапуске вызывается git pull, т.к.
+            с точки зрения реактивной системы hyoo/board еще не существует.
+            */
             this.changed.add(this.absolute(path));
         }
+        // protected static watch_wd = null as null | $mol_after_timeout
         static unwatched(side_effect, affected_dir) {
+            // ждем, пока выполнится предыдущий unwatched
             const unlock = this.lock.grab();
             this.watch_off(affected_dir);
             try {
@@ -4859,6 +5248,7 @@ var $;
         modified() { return this.stat()?.mtime ?? null; }
         version() {
             const next = this.stat()?.mtime.getTime().toString(36).toUpperCase() ?? '';
+            // console.log('version', next, this.path())
             return next;
         }
         info(path) { return null; }
@@ -4876,15 +5266,19 @@ var $;
         writable(opts) {
             return new WritableStream;
         }
+        // open( ... modes: readonly $mol_file_mode[] ) { return 0 }
         buffer(next) {
+            // Если версия пустая - возвращаем пустой буфер
             let readed = new Uint8Array();
             if (next === undefined) {
+                // Если меняется версия файла, буфер надо перечитать
                 if (this.version())
                     readed = this.read();
             }
             const prev = $mol_mem_cached(() => this.buffer());
             const changed = prev === undefined || !$mol_compare_array(prev, next ?? readed);
             if (prev !== undefined && changed) {
+                // Логируем, если повторно читаем/пишем и буфер поменялся
                 this.$.$mol_log3_rise({
                     place: `$mol_file_node.buffer()`,
                     message: 'Changed',
@@ -4893,6 +5287,11 @@ var $;
             }
             if (next === undefined)
                 return changed ? readed : prev;
+            // Если буфер при записи не поменялся и файл не удаляли перед этим - не записываем новую версию.
+            // Если записывать, это приведет к смене mtime и вотчер снова триггернется, даже если содержимое файла не поменялось.
+            // В этом алгоритме есть изъян.
+            // Если файл записали, потом отключили вотчер, кто-то из вне его поменял, потом включили вотчер, снова записали тот же буфер,
+            // то буфер не запишется на диск, т.к. кэш не консистентен с диском.
             if (!changed && this.exists())
                 return prev;
             this.parent().exists(true);
@@ -4928,13 +5327,21 @@ var $;
             }
             return null;
         }
+        // static watch_root = ''
+        // static watcher_warned = false
         watcher() {
+            // const constructor = this.constructor as typeof $mol_file_base
+            // if (! constructor.watcher_warned) {
+            // 	console.warn(`${constructor}.watcher() not implemented`)
+            // 	constructor.watcher_warned = true
+            // }
             return {
                 destructor() { }
             };
         }
         exists(next) {
             const exists = Boolean(this.stat());
+            // console.log('exists current', exists, 'next', next, this.path())
             if (next === undefined)
                 return exists;
             if (next === exists)
@@ -4960,6 +5367,10 @@ var $;
             return match ? match[1].substring(1) : '';
         }
         text(next, virt) {
+            // Если записываем text, и вотчер ресетнул записанный файл,
+            // то надо снова его обновить, вызвать логику, которая делала пуш в text.
+            // Например файл удалили, потом снова создали, версия поменялась - перезаписываем
+            // Если использовать version, то вновь созданный файл, через вотчер запустит свое пересоздание
             if (next !== undefined)
                 this.exists();
             return this.text_int(next, virt);
@@ -4984,6 +5395,7 @@ var $;
             if (this.type() !== 'dir')
                 return [];
             this.version();
+            // Если дочерний file удалился, список надо обновить
             return this.kids().filter(file => file.exists());
         }
         resolve(path) {
@@ -5128,10 +5540,15 @@ var $;
         watcher(reset) {
             const path = this.path();
             const root = this.root();
+            // Если папки/файла нет, watch упадет с ошибкой
+            // exists обратится к parent.version и parent.watcher
+            // Поэтому у root-папки и выше не надо вызывать exists, иначе поднимется выше base до корня диска
+            // exists вызывать надо, что б пересоздавать вотчер при появлении папки или файла
             if (!root && !this.exists())
                 return super.watcher();
             let watcher;
             try {
+                // Между exists и watch файл может удалиться, в любом случае надо обрабатывать ENOENT
                 watcher = $node.fs.watch(path);
             }
             catch (error) {
@@ -5141,6 +5558,8 @@ var $;
                 if (root || error.code !== 'ENOENT') {
                     this.$.$mol_fail_log(error);
                 }
+                // Если файла нет - вотчер не создается, создастся потом, когда exists поменяется на true.
+                // Если создание упало с другой ошибкой - не ломаем работу mol_file, деградируем до не реактивной fs.
                 return super.watcher();
             }
             watcher.on('change', (type, name) => {
@@ -5152,6 +5571,7 @@ var $;
             watcher.on('error', e => this.$.$mol_fail_log(e));
             let destructed = false;
             watcher.on('close', () => {
+                // Если в процессе работы вотчер сам закрылся, надо его переоткрыть
                 if (!destructed)
                     setTimeout(() => $mol_wire_async(this).watcher(null), 500);
             });
@@ -5331,11 +5751,64 @@ var $;
 
 ;
 "use strict";
+var $;
+(function ($) {
+    class $mol_state_session extends $mol_object {
+        static 'native()';
+        static native() {
+            if (this['native()'])
+                return this['native()'];
+            check: try {
+                const native = $mol_dom_context.sessionStorage;
+                if (!native)
+                    break check;
+                native.setItem('', '');
+                native.removeItem('');
+                return this['native()'] = native;
+            }
+            catch (error) {
+                console.warn(error);
+            }
+            return this['native()'] = {
+                getItem(key) {
+                    return this[':' + key];
+                },
+                setItem(key, value) {
+                    this[':' + key] = value;
+                },
+                removeItem(key) {
+                    this[':' + key] = void 0;
+                }
+            };
+        }
+        static value(key, next) {
+            if (next === void 0)
+                return JSON.parse(this.native().getItem(key) || 'null');
+            if (next === null)
+                this.native().removeItem(key);
+            else
+                this.native().setItem(key, JSON.stringify(next));
+            return next;
+        }
+        prefix() { return ''; }
+        value(key, next) {
+            return $mol_state_session.value(this.prefix() + '.' + key, next);
+        }
+    }
+    __decorate([
+        $mol_mem_key
+    ], $mol_state_session, "value", null);
+    $.$mol_state_session = $mol_state_session;
+})($ || ($ = {}));
+
+;
+"use strict";
 
 ;
 "use strict";
 var $;
 (function ($) {
+    /** State of arguments like `foo=bar xxx` */
     class $mol_state_arg extends $mol_object {
         prefix;
         static prolog = '';
@@ -5457,6 +5930,10 @@ var $;
             return false;
         return null;
     }
+    /**
+     * Switcher between light/dark themes (usually for `mol_theme_auto` plugin).
+     * @see https://mol.hyoo.ru/#!section=demos/demo=mol_lights_demo
+     */
     function $mol_lights(next) {
         const arg = parse(this.$mol_state_arg.value('mol_lights'));
         const base = this.$mol_media.match('(prefers-color-scheme: light)');
@@ -5479,6 +5956,7 @@ var $;
 ;
 "use strict";
 
+
 ;
 "use strict";
 var $;
@@ -5489,13 +5967,39 @@ var $;
             themes_default() {
                 return this.$.$bog_theme_names;
             }
+            /** Stores current mode in localStorage. Defaults to 'system'.
+             *  При записи дёргает класс `.bog_theme_switching` на `<html>` —
+             *  это активирует CSS-transition'ы на цветах темы.
+             */
             mode(next) {
+                if (next !== undefined && typeof document !== 'undefined') {
+                    const root = document.documentElement;
+                    root.classList.add('bog_theme_switching');
+                    setTimeout(() => root.classList.remove('bog_theme_switching'), 350);
+                }
                 return this.$.$mol_state_local.value(`${this}.mode()`, next) ?? 'system';
             }
+            click_step(next) {
+                return this.$.$mol_state_session.value(`${this}.click_step()`, next) ?? 0;
+            }
+            /** 3-click cycle: opposite → back → system. */
             mode_next() {
-                const cycle = ['system', 'light', 'dark'];
-                const i = cycle.indexOf(this.mode());
-                this.mode(cycle[i === -1 ? 0 : (i + 1) % cycle.length]);
+                const step = (this.click_step() + 1) % 3;
+                this.click_step(step);
+                if (step === 0)
+                    this.mode('system');
+                else
+                    this.mode(this.is_light_now() ? 'dark' : 'light');
+            }
+            is_light_now() {
+                const mode = this.mode();
+                if (mode === 'light')
+                    return true;
+                if (mode === 'dark')
+                    return false;
+                if (mode === 'system')
+                    return this.$.$mol_lights();
+                return this.theme().toLowerCase().includes('light');
             }
             theme_index(next) {
                 const stored = this.$.$mol_state_local.value(`${this}.theme_index()`, next);
@@ -5524,6 +6028,7 @@ var $;
                         return this.theme_light();
                     return themes[index % themes.length];
                 }
+                // system — follow browser preference
                 return this.$.$mol_lights() ? this.theme_light() : this.theme_dark();
             }
             theme_next() {
@@ -5534,6 +6039,7 @@ var $;
                 const i = cycle.indexOf(this.mode());
                 this.mode(cycle[i <= 0 ? cycle.length - 1 : i - 1]);
             }
+            /** Called by picker. Sets mode to light/dark or custom for themed palettes. */
             theme_set(index) {
                 const themes = this.themes();
                 if (themes.length === 0)
@@ -5549,14 +6055,21 @@ var $;
                     this.mode('custom');
                     this.theme_index(index % themes.length);
                 }
+                this.click_step(0);
             }
         }
         __decorate([
             $mol_mem
         ], $bog_theme_auto.prototype, "mode", null);
         __decorate([
+            $mol_mem
+        ], $bog_theme_auto.prototype, "click_step", null);
+        __decorate([
             $mol_action
         ], $bog_theme_auto.prototype, "mode_next", null);
+        __decorate([
+            $mol_mem
+        ], $bog_theme_auto.prototype, "is_light_now", null);
         __decorate([
             $mol_mem
         ], $bog_theme_auto.prototype, "theme_index", null);
@@ -5580,6 +6093,13 @@ var $;
 })($ || ($ = {}));
 
 ;
+"use strict";
+var $;
+(function ($) {
+    $mol_style_attach("bog/theme/auto/auto.view.css", ".bog_theme_switching,\n.bog_theme_switching * {\n\ttransition: background-color 300ms ease, color 300ms ease, border-color 300ms ease, fill 300ms ease !important;\n}\n\n@media (prefers-reduced-motion: reduce) {\n\t.bog_theme_switching,\n\t.bog_theme_switching * {\n\t\ttransition: none !important;\n\t}\n}\n");
+})($ || ($ = {}));
+
+;
 	($.$mol_ghost) = class $mol_ghost extends ($.$mol_view) {
 		Sub(){
 			const obj = new this.$.$mol_view();
@@ -5592,12 +6112,16 @@ var $;
 ;
 "use strict";
 
+
 ;
 "use strict";
 var $;
 (function ($) {
     var $$;
     (function ($$) {
+        /**
+         * Mixin view logic to DOM node of another component.
+         */
         class $mol_ghost extends $.$mol_ghost {
             dom_node_external(next) {
                 return this.Sub().dom_node(next);
@@ -5667,12 +6191,16 @@ var $;
 ;
 "use strict";
 
+
 ;
 "use strict";
 var $;
 (function ($) {
     var $$;
     (function ($$) {
+        /**
+         * Marker on top of another component with tracking of its position.
+         */
         class $mol_follower extends $.$mol_follower {
             pos() {
                 const self_rect = this.view_rect();
@@ -5809,6 +6337,10 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    /**
+     * Z-index values for layers
+     * https://page.hyoo.ru/#!=xthcpx_wqmiba
+     */
     $.$mol_layer = $mol_style_prop('mol_layer', [
         'hover',
         'focus',
@@ -5828,12 +6360,17 @@ var $;
 ;
 "use strict";
 
+
 ;
 "use strict";
 var $;
 (function ($) {
     var $$;
     (function ($$) {
+        /**
+         * `Bubble` that can be shown anchored to `Anchor` element.
+         * @see https://mol.hyoo.ru/#!section=demos/demo=mol_pop_demo
+         */
         class $mol_pop extends $.$mol_pop {
             showed(next = false) {
                 this.focused();
@@ -5979,6 +6516,10 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    /**
+    * Key names code for hotkey
+    * @see [mol_hotkey](../../hotkey/hotkey.view.ts)
+    */
     let $mol_keyboard_code;
     (function ($mol_keyboard_code) {
         $mol_keyboard_code[$mol_keyboard_code["backspace"] = 8] = "backspace";
@@ -6087,12 +6628,17 @@ var $;
 ;
 "use strict";
 
+
 ;
 "use strict";
 var $;
 (function ($) {
     var $$;
     (function ($$) {
+        /**
+         * Plugin which adds handlers for keyboard keys.
+         * @see [mol_keyboard_code](../keyboard/code/code.ts)
+         */
         class $mol_hotkey extends $.$mol_hotkey {
             key() {
                 return super.key();
@@ -6242,12 +6788,17 @@ var $;
 ;
 "use strict";
 
+
 ;
 "use strict";
 var $;
 (function ($) {
     var $$;
     (function ($$) {
+        /**
+         * An input field for entering single line text.
+         * @see https://mol.hyoo.ru/#!section=demos/demo=mol_string_demo
+         */
         class $mol_string extends $.$mol_string {
             event_change(next) {
                 if (!next)
@@ -6345,19 +6896,36 @@ var $;
 "use strict";
 var $;
 (function ($) {
-    $mol_style_attach("mol/string/string.view.css", "[mol_string] {\n\tbox-sizing: border-box;\n\toutline-offset: 0;\n\tborder: none;\n\tborder-radius: var(--mol_gap_round);\n\twhite-space: pre-line;\n\toverflow: hidden;\n\ttext-overflow: ellipsis;\n\tpadding: var(--mol_gap_text);\n\ttext-align: left;\n\tposition: relative;\n\tfont: inherit;\n\tflex: 1 1 auto;\n\tbackground: transparent;\n\tmin-width: 0;\n\tcolor: inherit;\n\tbackground: var(--mol_theme_field);\n}\n\n[mol_string]:disabled:not(:placeholder-shown) {\n\tbackground-color: transparent;\n\tcolor: var(--mol_theme_text);\n}\n\n[mol_string]:where(:not(:disabled)) {\n\tbox-shadow: inset 0 0 0 1px var(--mol_theme_line);\n}\n\n[mol_string]:where(:not(:disabled)):hover {\n\tbox-shadow: inset 0 0 0 2px var(--mol_theme_line);\n\tz-index: var(--mol_layer_hover);\n}\n\n[mol_string]:focus {\n\toutline: none;\n\tz-index: var(--mol_layer_focus);\n\tcolor: var(--mol_theme_text);\n\tbox-shadow: inset 0 0 0 1px var(--mol_theme_focus);\n}\n\n[mol_string]::placeholder {\n\tcolor: var(--mol_theme_shade);\n}\n\n[mol_string]::-ms-clear {\n\tdisplay: none;\n}\n");
+    $mol_style_attach("mol/string/string.view.css", "[mol_string] {\n\tbox-sizing: border-box;\n\toutline-offset: 0;\n\tborder: none;\n\tborder-radius: var(--mol_gap_round);\n\twhite-space: pre-line;\n\toverflow: hidden;\n\ttext-overflow: ellipsis;\n\tpadding: var(--mol_gap_text);\n\ttext-align: start;\n\tposition: relative;\n\tfont: inherit;\n\tflex: 1 1 auto;\n\tbackground: transparent;\n\tmin-width: 0;\n\tcolor: inherit;\n\tbackground: var(--mol_theme_field);\n}\n\n[mol_string]:disabled:not(:placeholder-shown) {\n\tbackground-color: transparent;\n\tcolor: var(--mol_theme_text);\n}\n\n[mol_string]:where(:not(:disabled)) {\n\tbox-shadow: inset 0 0 0 1px var(--mol_theme_line);\n}\n\n[mol_string]:where(:not(:disabled)):hover {\n\tbox-shadow: inset 0 0 0 2px var(--mol_theme_line);\n\tz-index: var(--mol_layer_hover);\n}\n\n[mol_string]:focus {\n\toutline: none;\n\tz-index: var(--mol_layer_focus);\n\tcolor: var(--mol_theme_text);\n\tbox-shadow: inset 0 0 0 1px var(--mol_theme_focus);\n}\n\n[mol_string]::placeholder {\n\tcolor: var(--mol_theme_shade);\n}\n\n[mol_string]::-ms-clear {\n\tdisplay: none;\n}\n");
 })($ || ($ = {}));
 
 ;
 "use strict";
 var $;
 (function ($) {
+    /**
+     * Localisation in $mol framework
+     * @see https://mol.hyoo.ru/#!section=docs/=s5aqnb_odub8l
+     */
     class $mol_locale extends $mol_object {
         static lang_default() {
             return 'en';
         }
         static lang(next) {
             return this.$.$mol_state_local.value('locale', next) || $mol_dom_context.navigator.language.replace(/-.*/, '') || this.lang_default();
+        }
+        static langs_rtl() {
+            return ['ar', 'he', 'fa', 'ur', 'yi', 'ps', 'ug', 'sd'];
+        }
+        static direction() {
+            const lang = this.lang();
+            try {
+                return new Intl.Locale(lang).getTextInfo().direction ?? 'ltr';
+            }
+            catch (e) {
+                $mol_fail_log(e);
+                return this.langs_rtl().includes(lang) ? 'rtl' : 'ltr';
+            }
         }
         static source(lang) {
             return JSON.parse(this.$.$mol_file.relative(`web.locale=${lang}.json`).text().toString());
@@ -6399,6 +6967,9 @@ var $;
     __decorate([
         $mol_mem
     ], $mol_locale, "lang", null);
+    __decorate([
+        $mol_mem
+    ], $mol_locale, "direction", null);
     __decorate([
         $mol_mem_key
     ], $mol_locale, "source", null);
@@ -6486,12 +7057,18 @@ var $;
 ;
 "use strict";
 
+
 ;
 "use strict";
 var $;
 (function ($) {
     var $$;
     (function ($$) {
+        /**
+         * The list of rows with lazy/virtual rendering support based on `minimal_height` of rows.
+         * `mol_list` should contain only components that inherits `mol_view`. You should not place raw strings or numbers in list.
+         * @see https://mol.hyoo.ru/#!section=demos/demo=mol_list_demo
+         */
         class $mol_list extends $.$mol_list {
             sub() {
                 const rows = this.rows();
@@ -6508,6 +7085,7 @@ var $;
             render_visible_only() {
                 return this.$.$mol_support_css_overflow_anchor();
             }
+            _view_window_last = [0, 0];
             view_window(next) {
                 const kids = this.sub();
                 if (kids.length < 3)
@@ -6517,7 +7095,7 @@ var $;
                 const rect = this.view_rect();
                 if (next)
                     return next;
-                let [min, max] = $mol_mem_cached(() => this.view_window()) ?? [0, 0];
+                let [min, max] = $mol_mem_cached(() => this.view_window()) ?? this._view_window_last;
                 const shift = this.view_window_shift();
                 this.view_window_shift(0);
                 min += shift;
@@ -6533,9 +7111,11 @@ var $;
                 const gap_after = $mol_mem_cached(() => this.gap_after()) ?? 0;
                 let top = Math.ceil(rect?.top ?? 0) + gap_before;
                 let bottom = Math.ceil(rect?.bottom ?? 0) - gap_after;
+                // change nothing when already covers all limits
                 if (top <= limit_top && bottom >= limit_bottom) {
                     return [min2, max2];
                 }
+                // jumps when fully over limits
                 if (anchoring && ((bottom < limit_top) || (top > limit_bottom))) {
                     min = 0;
                     top = Math.ceil(rect?.top ?? 0);
@@ -6552,18 +7132,22 @@ var $;
                 }
                 let top2 = top;
                 let bottom2 = bottom;
+                // force recalc min when overlapse top limit
                 if (anchoring && (top < limit_top) && (bottom < limit_bottom) && (max < kids.length)) {
                     min2 = max;
                     top2 = bottom;
                 }
+                // force recalc max when overlapse bottom limit
                 if ((bottom > limit_bottom) && (top > limit_top) && (min > 0)) {
                     max2 = min;
                     bottom2 = top;
                 }
+                // extend min to cover top limit
                 while (anchoring && ((top2 > limit_top) && (min2 > 0))) {
                     --min2;
                     top2 -= this.item_height_min(min2);
                 }
+                // extend max to cover bottom limit
                 while (bottom2 < limit_bottom && max2 < kids.length) {
                     bottom2 += this.item_height_min(max2);
                     ++max2;
@@ -6606,7 +7190,7 @@ var $;
             sub_visible() {
                 return [
                     ...this.gap_before() ? [this.Gap_before()] : [],
-                    ...this.sub().slice(...this.view_window()),
+                    ...this.sub().slice(...this._view_window_last = this.view_window()),
                     ...this.gap_after() ? [this.Gap_after()] : [],
                 ];
             }
@@ -6665,7 +7249,7 @@ var $;
 "use strict";
 var $;
 (function ($) {
-    $mol_style_attach("mol/list/list.view.css", "[mol_list] {\n\twill-change: contents;\n\tdisplay: flex;\n\tflex-direction: column;\n\tflex-shrink: 0;\n\tmax-width: 100%;\n\t/* display: flex;\n\talign-items: stretch;\n\talign-content: stretch; */\n\ttransition: none;\n\tmin-height: 1.5rem;\n\t/* will-change: contents; */\n}\n\n[mol_list_gap_before] ,\n[mol_list_gap_after] {\n\tdisplay: block !important;\n\tflex: none;\n\ttransition: none;\n\toverflow-anchor: none;\n}\n");
+    $mol_style_attach("mol/list/list.view.css", "[mol_list] {\n\twill-change: contents;\n\tdisplay: flex;\n\tflex-direction: column;\n\tflex-shrink: 0;\n\tmax-width: 100%;\n\t/* display: flex;\n\talign-items: stretch;\n\talign-content: stretch; */\n\ttransition: none;\n\t/* will-change: contents; */\n}\n\n[mol_list]:where([mol_view_error]) {\n\tmin-height: 1.5rem;\n}\n\n[mol_list_gap_before] ,\n[mol_list_gap_after] {\n\tdisplay: block !important;\n\tflex: none;\n\ttransition: none;\n\toverflow-anchor: none;\n}\n");
 })($ || ($ = {}));
 
 ;
@@ -6691,6 +7275,7 @@ var $;
 
 ;
 "use strict";
+
 
 ;
 	($.$mol_button) = class $mol_button extends ($.$mol_view) {
@@ -6780,12 +7365,17 @@ var $;
 ;
 "use strict";
 
+
 ;
 "use strict";
 var $;
 (function ($) {
     var $$;
     (function ($$) {
+        /**
+         * Simple button.
+         * @see https://mol.hyoo.ru/#!section=demos/demo=mol_button_demo
+         */
         class $mol_button extends $.$mol_button {
             disabled() {
                 return !this.enabled();
@@ -6801,6 +7391,7 @@ var $;
                     this.status([null]);
                 }
                 catch (error) {
+                    // Calling actions from catch section, if throwing promise breaks idempotency
                     Promise.resolve().then(() => this.status([error]));
                     $mol_fail_hidden(error);
                 }
@@ -6870,6 +7461,7 @@ var $;
 ;
 "use strict";
 
+
 ;
 	($.$mol_button_minor) = class $mol_button_minor extends ($.$mol_button_typed) {};
 
@@ -6883,6 +7475,7 @@ var $;
 
 ;
 "use strict";
+
 
 ;
 	($.$bog_theme_picker_row) = class $bog_theme_picker_row extends ($.$mol_button_minor) {
@@ -6911,6 +7504,7 @@ var $;
 
 ;
 "use strict";
+
 
 ;
 "use strict";
@@ -7034,12 +7628,16 @@ var $;
 ;
 "use strict";
 
+
 ;
 "use strict";
 var $;
 (function ($) {
     var $$;
     (function ($$) {
+        /**
+         * Theme picker popup with search and list
+         */
         class $bog_theme_picker extends $.$bog_theme_picker {
             theme_rows() {
                 const themes = this.filtered_themes();
@@ -7049,6 +7647,7 @@ var $;
                 const query = this.query().toLowerCase().trim();
                 const themes = this.$.$bog_theme_names;
                 const filtered = query ? themes.filter(name => name.toLowerCase().includes(query)) : [...themes];
+                // Reset focused index when filter changes
                 const current = this.focused_index();
                 if (current >= filtered.length) {
                     this.focused_index(-1);
@@ -7070,12 +7669,14 @@ var $;
                 if (global_index !== -1) {
                     this.theme_auto().theme_set(global_index);
                 }
+                // Close popup
                 this.close();
                 return null;
             }
             theme_hover(index, event) {
                 if (!event)
                     return null;
+                // Update focused index on hover (this will apply preview via theme_focused)
                 this.focused_index(index);
                 const themes = this.filtered_themes();
                 const theme_name = themes[index];
@@ -7094,6 +7695,7 @@ var $;
                     case 'ArrowDown':
                         event.preventDefault();
                         event.stopPropagation();
+                        // If focus is on search (-1), start from first item
                         if (current === -1) {
                             current = 0;
                         }
@@ -7106,6 +7708,7 @@ var $;
                     case 'ArrowUp':
                         event.preventDefault();
                         event.stopPropagation();
+                        // If focus is on search (-1), start from last item
                         if (current === -1) {
                             current = themes.length - 1;
                         }
@@ -7135,6 +7738,7 @@ var $;
                 if (global_index !== -1) {
                     this.theme_auto().theme_set(global_index);
                 }
+                // Close popup
                 this.close();
             }
             preview_theme(index) {
@@ -7204,33 +7808,7 @@ var $;
 
 ;
 "use strict";
-var $;
-(function ($) {
-    class $mol_state_time extends $mol_object {
-        static task(precision, reset) {
-            if (precision) {
-                return new $mol_after_timeout(precision, () => this.task(precision, null));
-            }
-            else {
-                return new $mol_after_frame(() => this.task(precision, null));
-            }
-        }
-        static now(precision) {
-            this.task(precision);
-            return Date.now();
-        }
-    }
-    __decorate([
-        $mol_mem_key
-    ], $mol_state_time, "task", null);
-    __decorate([
-        $mol_mem_key
-    ], $mol_state_time, "now", null);
-    $.$mol_state_time = $mol_state_time;
-})($ || ($ = {}));
 
-;
-"use strict";
 
 ;
 "use strict";
@@ -7238,6 +7816,7 @@ var $;
 (function ($) {
     var $$;
     (function ($$) {
+        /** Base SVG component to display SVG images or icons. */
         class $mol_svg extends $.$mol_svg {
             computed_style() {
                 const win = this.$.$mol_dom_context;
@@ -7297,6 +7876,7 @@ var $;
 ;
 "use strict";
 
+
 ;
 	($.$mol_svg_path) = class $mol_svg_path extends ($.$mol_svg) {
 		geometry(){
@@ -7313,6 +7893,7 @@ var $;
 
 ;
 "use strict";
+
 
 ;
 	($.$mol_icon) = class $mol_icon extends ($.$mol_svg_root) {
@@ -7350,6 +7931,7 @@ var $;
 ;
 "use strict";
 
+
 ;
 	($.$mol_icon_white_balance_sunny) = class $mol_icon_white_balance_sunny extends ($.$mol_icon) {
 		path(){
@@ -7360,6 +7942,7 @@ var $;
 
 ;
 "use strict";
+
 
 ;
 	($.$mol_icon_weather_night) = class $mol_icon_weather_night extends ($.$mol_icon) {
@@ -7372,6 +7955,7 @@ var $;
 ;
 "use strict";
 
+
 ;
 	($.$mol_icon_monitor) = class $mol_icon_monitor extends ($.$mol_icon) {
 		path(){
@@ -7382,6 +7966,7 @@ var $;
 
 ;
 "use strict";
+
 
 ;
 	($.$bog_theme_toggle) = class $bog_theme_toggle extends ($.$mol_pop) {
@@ -7499,6 +8084,7 @@ var $;
 ;
 "use strict";
 
+
 ;
 "use strict";
 var $;
@@ -7599,6 +8185,7 @@ var $;
                         search.focused(true);
                     }
                     catch (e) {
+                        // Ignore focus errors
                     }
                 }, 100);
             }
@@ -7660,9 +8247,9 @@ var $;
 })($ || ($ = {}));
 
 ;
-	($.$mol_icon_upload) = class $mol_icon_upload extends ($.$mol_icon) {
+	($.$mol_icon_arrow_left) = class $mol_icon_arrow_left extends ($.$mol_icon) {
 		path(){
-			return "M9,16V10H5L12,3L19,10H15V16H9M5,20V18H19V20H5Z";
+			return "M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z";
 		}
 	};
 
@@ -7670,74 +8257,186 @@ var $;
 ;
 "use strict";
 
+
 ;
-	($.$mol_button_open) = class $mol_button_open extends ($.$mol_button_minor) {
-		Icon(){
-			const obj = new this.$.$mol_icon_upload();
-			return obj;
-		}
-		files(next){
-			if(next !== undefined) return next;
-			return [];
-		}
-		files_handled(next){
-			return (this.files(next));
-		}
-		accept(){
-			return "";
-		}
-		multiple(){
-			return true;
-		}
-		Native(){
-			const obj = new this.$.$mol_button_open_native();
-			(obj.files) = (next) => ((this.files_handled(next)));
-			(obj.accept) = () => ((this.accept()));
-			(obj.multiple) = () => ((this.multiple()));
-			return obj;
-		}
-		sub(){
-			return [(this.Icon()), (this.Native())];
+	($.$mol_icon_play) = class $mol_icon_play extends ($.$mol_icon) {
+		path(){
+			return "M8,5.14V19.14L19,12.14L8,5.14Z";
 		}
 	};
-	($mol_mem(($.$mol_button_open.prototype), "Icon"));
-	($mol_mem(($.$mol_button_open.prototype), "files"));
-	($mol_mem(($.$mol_button_open.prototype), "Native"));
-	($.$mol_button_open_native) = class $mol_button_open_native extends ($.$mol_view) {
-		accept(){
+
+
+;
+"use strict";
+
+
+;
+	($.$mol_button_major) = class $mol_button_major extends ($.$mol_button_minor) {
+		theme(){
+			return "$mol_theme_base";
+		}
+	};
+
+
+;
+"use strict";
+var $;
+(function ($) {
+    $mol_style_attach("mol/button/major/major.view.css", "[mol_button_major] {\n\tbackground-color: var(--mol_theme_back);\n\tcolor: var(--mol_theme_text);\n}\n");
+})($ || ($ = {}));
+
+;
+"use strict";
+
+
+;
+	($.$mol_icon_image) = class $mol_icon_image extends ($.$mol_icon) {
+		path(){
+			return "M8.5,13.5L11,16.5L14.5,12L19,18H5M21,19V5C21,3.89 20.1,3 19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19Z";
+		}
+	};
+
+
+;
+"use strict";
+
+
+;
+	($.$mol_icon_image_plus) = class $mol_icon_image_plus extends ($.$mol_icon) {
+		path(){
+			return "M18 15V18H15V20H18V23H20V20H23V18H20V15H18M13.3 21H5C3.9 21 3 20.1 3 19V5C3 3.9 3.9 3 5 3H19C20.1 3 21 3.9 21 5V13.3C20.4 13.1 19.7 13 19 13C17.9 13 16.8 13.3 15.9 13.9L14.5 12L11 16.5L8.5 13.5L5 18H13.1C13 18.3 13 18.7 13 19C13 19.7 13.1 20.4 13.3 21Z";
+		}
+	};
+
+
+;
+"use strict";
+
+
+;
+	($.$mol_icon_content_save) = class $mol_icon_content_save extends ($.$mol_icon) {
+		path(){
+			return "M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z";
+		}
+	};
+
+
+;
+"use strict";
+
+
+;
+	($.$mol_icon_help) = class $mol_icon_help extends ($.$mol_icon) {
+		path(){
+			return "M10,19H13V22H10V19M12,2C17.35,2.22 19.68,7.62 16.5,11.67C15.67,12.67 14.33,13.33 13.67,14.17C13,15 13,16 13,17H10C10,15.33 10,13.92 10.67,12.92C11.33,11.92 12.67,11.33 13.5,10.67C15.92,8.43 15.32,5.26 12,5A3,3 0 0,0 9,8H6A6,6 0 0,1 12,2Z";
+		}
+	};
+
+
+;
+"use strict";
+
+
+;
+	($.$bog_pazzle_menu) = class $bog_pazzle_menu extends ($.$mol_list) {
+		Resume_icon(){
+			const obj = new this.$.$mol_icon_play();
+			return obj;
+		}
+		Resume(){
+			const obj = new this.$.$mol_button_major();
+			(obj.hint) = () => ("Вернуться к начатой партии");
+			(obj.click) = (next) => ((this.play(next)));
+			(obj.sub) = () => ([(this.Resume_icon()), "Продолжить"]);
+			return obj;
+		}
+		New_icon(){
+			const obj = new this.$.$mol_icon_image_plus();
+			return obj;
+		}
+		New(){
+			const obj = new this.$.$mol_button_major();
+			(obj.hint) = () => ("Собрать пазл из другой картинки");
+			(obj.click) = (next) => ((this.home(next)));
+			(obj.sub) = () => ([(this.New_icon()), "Новый пазл"]);
+			return obj;
+		}
+		Saves_icon(){
+			const obj = new this.$.$mol_icon_content_save();
+			return obj;
+		}
+		saves_label(){
 			return "";
 		}
-		multiple(){
-			return true;
+		Saves(){
+			const obj = new this.$.$mol_button_minor();
+			(obj.hint) = () => ("Начатые и собранные пазлы");
+			(obj.click) = (next) => ((this.saves(next)));
+			(obj.sub) = () => ([(this.Saves_icon()), (this.saves_label())]);
+			return obj;
 		}
-		picked(next){
+		Help_icon(){
+			const obj = new this.$.$mol_icon_help();
+			return obj;
+		}
+		Help(){
+			const obj = new this.$.$mol_button_minor();
+			(obj.hint) = () => ("Правила игры");
+			(obj.click) = (next) => ((this.help(next)));
+			(obj.sub) = () => ([(this.Help_icon()), "Как играть"]);
+			return obj;
+		}
+		menu_content(){
+			return [
+				(this.Resume()), 
+				(this.New()), 
+				(this.Saves()), 
+				(this.Help())
+			];
+		}
+		resumable(){
+			return false;
+		}
+		saves_count(){
+			return 0;
+		}
+		home(next){
 			if(next !== undefined) return next;
 			return null;
 		}
-		dom_name(){
-			return "input";
-		}
-		files(next){
+		play(next){
 			if(next !== undefined) return next;
-			return [];
+			return null;
 		}
-		attr(){
-			return {
-				"type": "file", 
-				"accept": (this.accept()), 
-				"multiple": (this.multiple())
-			};
+		saves(next){
+			if(next !== undefined) return next;
+			return null;
 		}
-		event(){
-			return {"change": (next) => (this.picked(next))};
+		help(next){
+			if(next !== undefined) return next;
+			return null;
+		}
+		rows(){
+			return (this.menu_content());
 		}
 	};
-	($mol_mem(($.$mol_button_open_native.prototype), "picked"));
-	($mol_mem(($.$mol_button_open_native.prototype), "files"));
+	($mol_mem(($.$bog_pazzle_menu.prototype), "Resume_icon"));
+	($mol_mem(($.$bog_pazzle_menu.prototype), "Resume"));
+	($mol_mem(($.$bog_pazzle_menu.prototype), "New_icon"));
+	($mol_mem(($.$bog_pazzle_menu.prototype), "New"));
+	($mol_mem(($.$bog_pazzle_menu.prototype), "Saves_icon"));
+	($mol_mem(($.$bog_pazzle_menu.prototype), "Saves"));
+	($mol_mem(($.$bog_pazzle_menu.prototype), "Help_icon"));
+	($mol_mem(($.$bog_pazzle_menu.prototype), "Help"));
+	($mol_mem(($.$bog_pazzle_menu.prototype), "home"));
+	($mol_mem(($.$bog_pazzle_menu.prototype), "play"));
+	($mol_mem(($.$bog_pazzle_menu.prototype), "saves"));
+	($mol_mem(($.$bog_pazzle_menu.prototype), "help"));
 
 
 ;
 "use strict";
+
 
 ;
 "use strict";
@@ -7745,32 +8444,23 @@ var $;
 (function ($) {
     var $$;
     (function ($$) {
-        class $mol_button_open extends $.$mol_button_open {
-            files_handled(next) {
-                try {
-                    const files = this.files(next);
-                    this.status([null]);
-                    return files;
-                }
-                catch (error) {
-                    Promise.resolve().then(() => this.status([error]));
-                    $mol_fail_hidden(error);
-                }
+        class $bog_pazzle_menu extends $.$bog_pazzle_menu {
+            menu_content() {
+                const rows = [];
+                if (this.resumable())
+                    rows.push(this.Resume());
+                rows.push(this.New(), this.Saves(), this.Help());
+                return rows;
+            }
+            saves_label() {
+                const count = this.saves_count();
+                return count ? 'Мои пазлы · ' + count : 'Мои пазлы';
             }
         }
-        $$.$mol_button_open = $mol_button_open;
-        class $mol_button_open_native extends $.$mol_button_open_native {
-            dom_node() {
-                return super.dom_node();
-            }
-            picked() {
-                const files = this.dom_node().files;
-                if (!files || !files.length)
-                    return;
-                this.files([...files]);
-            }
-        }
-        $$.$mol_button_open_native = $mol_button_open_native;
+        __decorate([
+            $mol_mem
+        ], $bog_pazzle_menu.prototype, "menu_content", null);
+        $$.$bog_pazzle_menu = $bog_pazzle_menu;
     })($$ = $.$$ || ($.$$ = {}));
 })($ || ($ = {}));
 
@@ -7778,218 +8468,29 @@ var $;
 "use strict";
 var $;
 (function ($) {
-    $mol_style_attach("mol/button/open/open.view.css", "[mol_button_open_native] {\n\tposition: absolute;\n\tleft: 0;\n\ttop: -100%;\n\twidth: 100%;\n\theight: 200%;\n\tcursor: pointer;\n\topacity: 0;\n}\n");
-})($ || ($ = {}));
-
-;
-	($.$bog_pazzle_upload_image) = class $bog_pazzle_upload_image extends ($.$mol_button_open) {
-		title(){
-			return "Загрузить изображение";
-		}
-		image_data(next){
-			if(next !== undefined) return next;
-			return null;
-		}
-		image_uri(){
-			return "";
-		}
-	};
-	($mol_mem(($.$bog_pazzle_upload_image.prototype), "image_data"));
-
-
-;
-	($.$mol_image) = class $mol_image extends ($.$mol_view) {
-		uri(){
-			return "";
-		}
-		title(){
-			return "";
-		}
-		loading(){
-			return "lazy";
-		}
-		decoding(){
-			return "async";
-		}
-		cors(){
-			return null;
-		}
-		natural_width(){
-			return 0;
-		}
-		natural_height(){
-			return 0;
-		}
-		load(next){
-			if(next !== undefined) return next;
-			return null;
-		}
-		dom_name(){
-			return "img";
-		}
-		attr(){
-			return {
-				...(super.attr()), 
-				"src": (this.uri()), 
-				"title": (this.hint()), 
-				"alt": (this.title()), 
-				"loading": (this.loading()), 
-				"decoding": (this.decoding()), 
-				"crossOrigin": (this.cors()), 
-				"width": (this.natural_width()), 
-				"height": (this.natural_height())
-			};
-		}
-		event(){
-			return {"load": (next) => (this.load(next))};
-		}
-		minimal_width(){
-			return 16;
-		}
-		minimal_height(){
-			return 16;
-		}
-	};
-	($mol_mem(($.$mol_image.prototype), "load"));
-
-
-;
-"use strict";
-
-;
-"use strict";
-var $;
-(function ($) {
     var $$;
     (function ($$) {
-        class $mol_image extends $.$mol_image {
-            natural_width(next) {
-                const dom = this.dom_node();
-                if (dom.naturalWidth)
-                    return dom.naturalWidth;
-                const found = this.uri().match(/\bwidth=(\d+)/);
-                return found ? Number(found[1]) : null;
-            }
-            natural_height(next) {
-                const dom = this.dom_node();
-                if (dom.naturalHeight)
-                    return dom.naturalHeight;
-                const found = this.uri().match(/\bheight=(\d+)/);
-                return found ? Number(found[1]) : null;
-            }
-            load() {
-                this.natural_width(null);
-                this.natural_height(null);
-            }
-        }
-        __decorate([
-            $mol_mem
-        ], $mol_image.prototype, "natural_width", null);
-        __decorate([
-            $mol_mem
-        ], $mol_image.prototype, "natural_height", null);
-        $$.$mol_image = $mol_image;
-    })($$ = $.$$ || ($.$$ = {}));
-})($ || ($ = {}));
-
-;
-"use strict";
-var $;
-(function ($) {
-    $mol_style_attach("mol/image/image.view.css", "[mol_image] {\n\tborder-radius: var(--mol_gap_round);\n\toverflow: hidden;\n\tflex: 0 1 auto;\n\tmax-width: 100%;\n\tobject-fit: cover;\n\theight: fit-content;\n}\n");
-})($ || ($ = {}));
-
-;
-"use strict";
-
-;
-"use strict";
-var $;
-(function ($_1) {
-    var $$;
-    (function ($$) {
-        class $bog_pazzle_upload_image extends $.$bog_pazzle_upload_image {
-            image_data(next) {
-                if (next !== undefined)
-                    return next;
-                return null;
-            }
-            accept() {
-                return 'image/*';
-            }
-            multiple() {
-                return false;
-            }
-            sub() {
-                const has_image = !!this.image_uri();
-                const view = has_image ? this.Image() : this.Placeholder();
-                return [view, this.Native()];
-            }
-            Image() {
-                const $ = this.$;
-                return $.$mol_image.make({
-                    title: $mol_const(''),
-                    uri: () => this.image_uri(),
-                });
-            }
-            Placeholder() {
-                const $ = this.$;
-                return $.$mol_icon_upload.make({});
-            }
-            files(next) {
-                if (next && next.length) {
-                    const file = next[0];
-                    const buffer = new Uint8Array(this.$.$mol_wire_sync(file).arrayBuffer());
-                    this.image_data(buffer);
-                }
-                return [];
-            }
-        }
-        __decorate([
-            $mol_mem
-        ], $bog_pazzle_upload_image.prototype, "image_data", null);
-        __decorate([
-            $mol_action
-        ], $bog_pazzle_upload_image.prototype, "files", null);
-        $$.$bog_pazzle_upload_image = $bog_pazzle_upload_image;
-    })($$ = $_1.$$ || ($_1.$$ = {}));
-})($ || ($ = {}));
-
-;
-"use strict";
-var $;
-(function ($) {
-    var $$;
-    (function ($$) {
-        $mol_style_define($bog_pazzle_upload_image, {
-            width: '12rem',
-            height: '12rem',
-            padding: 0,
-            border: { radius: $mol_gap.round },
-            background: { color: $mol_theme.card },
+        const { rem } = $mol_style_unit;
+        $mol_style_define($bog_pazzle_menu, {
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            position: 'relative',
-            overflow: 'hidden',
-            $mol_image: {
-                width: '100%',
-                height: '100%',
-                maxWidth: '100%',
-                objectFit: 'cover',
+            flexDirection: 'column',
+            gap: $mol_gap.text,
+            padding: $mol_gap.block,
+            background: { color: $mol_theme.card },
+            border: { radius: $mol_gap.round },
+            boxShadow: `0 0 0 1px ${$mol_theme.line}`,
+            '>': {
+                $mol_button: {
+                    justifyContent: 'flex-start',
+                    gap: $mol_gap.text,
+                    minHeight: rem(2.5),
+                },
             },
-            Native: {
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                opacity: 0,
-                cursor: 'pointer',
-            },
-            Placeholder: {
-                width: '48px',
-                height: '48px',
+            '@media': {
+                '(max-width: 45rem)': {
+                    flexDirection: 'row',
+                    flexWrap: 'wrap',
+                },
             },
         });
     })($$ = $.$$ || ($.$$ = {}));
@@ -8017,6 +8518,7 @@ var $;
 
 ;
 "use strict";
+
 
 ;
 "use strict";
@@ -8087,6 +8589,7 @@ var $;
 ;
 "use strict";
 
+
 ;
 	($.$mol_dimmer) = class $mol_dimmer extends ($.$mol_paragraph) {
 		parts(){
@@ -8136,8 +8639,10 @@ var $;
 var $;
 (function ($) {
     let x = /x/[Symbol.matchAll];
+    /** Type safe reguar expression builder */
     class $mol_regexp extends RegExp {
         groups;
+        /** Prefer to use $mol_regexp.from */
         constructor(source, flags = 'gsu', groups = []) {
             super(source, flags);
             this.groups = groups;
@@ -8157,12 +8662,14 @@ var $;
                 this.lastIndex = index;
             }
         }
+        /** Parses input and returns found capture groups or null */
         [Symbol.match](str) {
             const res = [...this[Symbol.matchAll](str)].filter(r => r.groups).map(r => r[0]);
             if (!res.length)
                 return null;
             return res;
         }
+        /** Splits string by regexp edges */
         [Symbol.split](str) {
             const res = [];
             let token_last = null;
@@ -8217,12 +8724,14 @@ var $;
         get native() {
             return new RegExp(this.source, this.flags);
         }
+        /** Makes regexp that greedy repeats this pattern with delimiter */
         static separated(chunk, sep) {
             return $mol_regexp.from([
                 $mol_regexp.repeat_greedy([[chunk], sep], 0),
                 chunk,
             ]);
         }
+        /** Makes regexp that non-greedy repeats this pattern from min to max count */
         static repeat(source, min = 0, max = Number.POSITIVE_INFINITY) {
             const regexp = $mol_regexp.from(source);
             const upper = Number.isFinite(max) ? max : '';
@@ -8238,6 +8747,7 @@ var $;
             };
             return regexp2;
         }
+        /** Makes regexp that greedy repeats this pattern from min to max count */
         static repeat_greedy(source, min = 0, max = Number.POSITIVE_INFINITY) {
             const regexp = $mol_regexp.from(source);
             const upper = Number.isFinite(max) ? max : '';
@@ -8253,6 +8763,7 @@ var $;
             };
             return regexp2;
         }
+        /** Makes regexp that match any of options */
         static vary(sources, flags = 'gsu') {
             const groups = [];
             const chunks = sources.map(source => {
@@ -8262,17 +8773,21 @@ var $;
             });
             return new $mol_regexp(`(?:${chunks.join('|')})`, flags, groups);
         }
+        /** Makes regexp that allow absent of this pattern */
         static optional(source) {
             return $mol_regexp.repeat_greedy(source, 0, 1);
         }
+        /** Makes regexp that look ahead for pattern */
         static force_after(source) {
             const regexp = $mol_regexp.from(source);
             return new $mol_regexp(`(?=${regexp.source})`, regexp.flags, regexp.groups);
         }
+        /** Makes regexp that look ahead for pattern */
         static forbid_after(source) {
             const regexp = $mol_regexp.from(source);
             return new $mol_regexp(`(?!${regexp.source})`, regexp.flags, regexp.groups);
         }
+        /** Converts some js values to regexp */
         static from(source, { ignoreCase, multiline } = {
             ignoreCase: false,
             multiline: false,
@@ -8373,9 +8888,11 @@ var $;
                 return regexp;
             }
         }
+        /** Makes regexp which includes only unicode category */
         static unicode_only(...category) {
             return new $mol_regexp(`\\p{${category.join('=')}}`);
         }
+        /** Makes regexp which excludes unicode category */
         static unicode_except(...category) {
             return new $mol_regexp(`\\P{${category.join('=')}}`);
         }
@@ -8416,12 +8933,17 @@ var $;
 ;
 "use strict";
 
+
 ;
 "use strict";
 var $;
 (function ($) {
     var $$;
     (function ($$) {
+        /**
+         * Output text with dimmed mismatched substrings.
+         * @see https://mol.hyoo.ru/#!section=demos/demo=mol_dimmer_demo
+         */
         class $mol_dimmer extends $.$mol_dimmer {
             parts() {
                 const needle = this.needle();
@@ -8498,6 +9020,7 @@ var $;
 
 ;
 "use strict";
+
 
 ;
 "use strict";
@@ -8620,6 +9143,7 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    /** Creates lexer by dictionary of lexems. Lexem that started first wins. Then lexem that declared earlier wins. Use regexp capture to take parts of token. */
     class $mol_syntax2 {
         lexems;
         constructor(lexems) {
@@ -8678,7 +9202,7 @@ var $;
         'spoiler': /^((?:(?:[\?] )(?:[^]*?)$(\r?\n?))+)([\n\r]*)/,
         'header': /^([#=]+)(\s+)(.*?)$([\n\r]*)/,
         'list': /^((?:(?: ?([*+-])|(?:\d+[\.\)])+) +(?:[^]*?)$(?:\r?\n?)(?:  (?:[^]*?)$(?:\r?\n?))*)+)((?:\r?\n)*)/,
-        'code': /^(```\s*)([\w.-]*)[\r\n]+([^]*?)^(```)$([\n\r]*)/,
+        'code': /^(```)([\w.-]*)[\r\n]+([^]*?)^(```)$([\n\r]*)/,
         'code-indent': /^((?:(?: |\t)(?:[^]*?)$\r?\n?)+)([\n\r]*)/,
         'table': /((?:^\|.+?$\r?\n?)+)([\n\r]*)/,
         'grid': /((?:^ *! .*?$\r?\n?)+)([\n\r]*)/,
@@ -8691,6 +9215,8 @@ var $;
         'code': /```(.+?)```|;;(.+?);;|`(.+?)`/,
         'insert': /\+\+(.+?)\+\+/,
         'delete': /~~(.+?)~~|--(.+?)--/,
+        // 'remark' : /(\()(.+?)(\))/ ,
+        // 'quote' : /(")(.+?)(")/ ,
         'embed': /""(?:(.*?)\\)?(.*?)""/,
         'link': /\\\\(?:(.*?)\\)?(.*?)\\\\/,
         'image-link': /!\[([^\[\]]*?)\]\((.*?)\)/,
@@ -8704,7 +9230,7 @@ var $;
         'code-link': /(?:\w+:\/\/|#)\S+?(?=\s|\\\\|""|$)/,
         'code-comment-inline': /\/\/.*?(?:$|\/\/)|- \\(?!\\).*|(?<=^| )#!? .*/,
         'code-string': /(?:".*?"|'.*?'|`.*?`| ?\\\\.+?\\\\|\/.+?\/[dygimsu]*(?!\p{Letter})|[ \t]*\\[^\n]*)/u,
-        'code-number': /[+-]?(?:\d*\.)?\d+\w*/,
+        'code-number': /[+-]?(?:\d*\.)?\d+(\uFE0F.|\w*)/,
         'code-call': /\.?\w+(?=\()/,
         'code-sexpr': /\((\w+ )/,
         'code-field': /(?:(?<=\.|::|->)[a-z][\w-]*|(?<=[, \t] |\t)[\w-]+\??:(?!\/\/|:))/,
@@ -8719,6 +9245,7 @@ var $;
 
 ;
 "use strict";
+
 
 ;
 "use strict";
@@ -8736,6 +9263,7 @@ var $;
             tokens(path) {
                 const tokens = [];
                 const text = (path.length > 0)
+                    // @FIXME: this logic compatible only with `string`
                     ? this.tokens(path.slice(0, path.length - 1))[path[path.length - 1]].found.slice(1, -1)
                     : this.text();
                 this.syntax().tokenize(text, (name, found, chunks) => {
@@ -8849,11 +9377,11 @@ var $;
                 family: 'monospace',
             },
             Numb: {
-                textAlign: 'right',
+                textAlign: 'end',
                 color: $mol_theme.shade,
                 width: rem(3),
                 margin: {
-                    left: rem(-4),
+                    inlineStart: '-4rem',
                 },
                 display: 'inline-block',
                 whiteSpace: 'nowrap',
@@ -8882,6 +9410,7 @@ var $;
 ;
 "use strict";
 
+
 ;
 	($.$mol_icon_clipboard_outline) = class $mol_icon_clipboard_outline extends ($.$mol_icon) {
 		path(){
@@ -8892,6 +9421,7 @@ var $;
 
 ;
 "use strict";
+
 
 ;
 	($.$mol_button_copy) = class $mol_button_copy extends ($.$mol_button_minor) {
@@ -8952,12 +9482,17 @@ var $;
 ;
 "use strict";
 
+
 ;
 "use strict";
 var $;
 (function ($) {
     var $$;
     (function ($$) {
+        /**
+         * Button copy text() value to clipboard
+         * @see https://mol.hyoo.ru/#!section=demos/demo=mol_button_demo
+         */
         class $mol_button_copy extends $.$mol_button_copy {
             data() {
                 return Object.fromEntries(this.blobs().map(blob => [blob.type, blob]));
@@ -9072,12 +9607,17 @@ var $;
 ;
 "use strict";
 
+
 ;
 "use strict";
 var $;
 (function ($) {
     var $$;
     (function ($$) {
+        /**
+         * Code visualizer.
+         * @see https://mol.hyoo.ru/#!section=demos/demo=mol_text_code_demo
+         */
         class $mol_text_code extends $.$mol_text_code {
             render_visible_only() {
                 return this.$.$mol_support_css_overflow_anchor();
@@ -9188,7 +9728,7 @@ var $;
                     true: {
                         $mol_text_code_line: {
                             margin: {
-                                left: rem(1.75),
+                                inlineStart: '1.75rem',
                             },
                         },
                     },
@@ -9215,6 +9755,7 @@ var $;
 
 ;
 "use strict";
+
 
 ;
 	($.$mol_check) = class $mol_check extends ($.$mol_button_minor) {
@@ -9290,11 +9831,12 @@ var $;
 "use strict";
 var $;
 (function ($) {
-    $mol_style_attach("mol/check/check.css", "[mol_check] {\n\tflex: 0 0 auto;\n\tjustify-content: flex-start;\n\talign-content: center;\n\t/* align-items: flex-start; */\n\tborder: none;\n\tfont-weight: inherit;\n\tbox-shadow: none;\n\ttext-align: left;\n\tdisplay: inline-flex;\n\tflex-wrap: nowrap;\n}\n\n[mol_check_title] {\n\tflex-shrink: 1;\n}\n");
+    $mol_style_attach("mol/check/check.css", "[mol_check] {\n\tflex: 0 0 auto;\n\tjustify-content: flex-start;\n\talign-content: center;\n\t/* align-items: flex-start; */\n\tborder: none;\n\tfont-weight: inherit;\n\tbox-shadow: none;\n\ttext-align: start;\n\tdisplay: inline-flex;\n\tflex-wrap: nowrap;\n}\n\n[mol_check_title] {\n\tflex-shrink: 1;\n}\n");
 })($ || ($ = {}));
 
 ;
 "use strict";
+
 
 ;
 "use strict";
@@ -9302,6 +9844,10 @@ var $;
 (function ($) {
     var $$;
     (function ($$) {
+        /**
+         * Checkbox UI component. See Variants for more concrete implementations.
+         * @see https://mol.hyoo.ru/#!section=demos/demo=mol_check_box_demo
+         */
         class $mol_check extends $.$mol_check {
             click(next) {
                 const event = next ? $mol_dom_event.wrap(next) : null;
@@ -9337,6 +9883,7 @@ var $;
 
 ;
 "use strict";
+
 
 ;
 	($.$mol_check_expand) = class $mol_check_expand extends ($.$mol_check) {
@@ -9374,12 +9921,17 @@ var $;
 ;
 "use strict";
 
+
 ;
 "use strict";
 var $;
 (function ($) {
     var $$;
     (function ($$) {
+        /**
+         * Expander for trees, lists, etc
+         * @see https://mol.hyoo.ru/#!section=demos/demo=mol_check_expand_demo
+         */
         class $mol_check_expand extends $.$mol_check_expand {
             level_style() {
                 return `${this.level() * 1 - 1}rem`;
@@ -9396,7 +9948,7 @@ var $;
 "use strict";
 var $;
 (function ($) {
-    $mol_style_attach("mol/check/expand/expand.view.css", "[mol_check_expand] {\n\tmin-width: 20px;\n}\n\n:where([mol_check_expand][disabled]) [mol_check_expand_icon] {\n\tvisibility: hidden;\n}\n\n[mol_check_expand_icon] {\n\tbox-shadow: none;\n\tmargin-left: -0.375rem;\n}\n[mol_check_expand_icon] {\n\ttransform: rotateZ(0deg);\n}\n\n:where([mol_check_checked]) [mol_check_expand_icon] {\n\ttransform: rotateZ(90deg);\n}\n\n[mol_check_expand_icon] {\n\tvertical-align: text-top;\n}\n\n[mol_check_expand_label] {\n\tmargin-left: 0;\n}\n");
+    $mol_style_attach("mol/check/expand/expand.view.css", "[mol_check_expand] {\n\tmin-width: 20px;\n}\n\n:where([mol_check_expand][disabled]) [mol_check_expand_icon] {\n\tvisibility: hidden;\n}\n\n[mol_check_expand_icon] {\n\tbox-shadow: none;\n\tmargin-inline-start: -0.375rem;\n}\n[mol_check_expand_icon] {\n\ttransform: rotateZ(0deg);\n}\n\n:where([mol_check_checked]) [mol_check_expand_icon] {\n\ttransform: rotateZ(90deg);\n}\n\n[mol_check_expand_icon] {\n\tvertical-align: text-top;\n}\n\n[mol_check_expand_label] {\n\tmargin-inline-start: 0;\n}\n");
 })($ || ($ = {}));
 
 ;
@@ -9551,58 +10103,7 @@ var $;
 
 ;
 "use strict";
-var $;
-(function ($) {
-    class $mol_state_session extends $mol_object {
-        static 'native()';
-        static native() {
-            if (this['native()'])
-                return this['native()'];
-            check: try {
-                const native = $mol_dom_context.sessionStorage;
-                if (!native)
-                    break check;
-                native.setItem('', '');
-                native.removeItem('');
-                return this['native()'] = native;
-            }
-            catch (error) {
-                console.warn(error);
-            }
-            return this['native()'] = {
-                getItem(key) {
-                    return this[':' + key];
-                },
-                setItem(key, value) {
-                    this[':' + key] = value;
-                },
-                removeItem(key) {
-                    this[':' + key] = void 0;
-                }
-            };
-        }
-        static value(key, next) {
-            if (next === void 0)
-                return JSON.parse(this.native().getItem(key) || 'null');
-            if (next === null)
-                this.native().removeItem(key);
-            else
-                this.native().setItem(key, JSON.stringify(next));
-            return next;
-        }
-        prefix() { return ''; }
-        value(key, next) {
-            return $mol_state_session.value(this.prefix() + '.' + key, next);
-        }
-    }
-    __decorate([
-        $mol_mem_key
-    ], $mol_state_session, "value", null);
-    $.$mol_state_session = $mol_state_session;
-})($ || ($ = {}));
 
-;
-"use strict";
 
 ;
 "use strict";
@@ -9747,13 +10248,16 @@ var $;
 "use strict";
 var $;
 (function ($) {
-    $mol_style_attach("mol/grid/grid.view.css", "[mol_grid] {\n\tdisplay: block;\n\tflex: 0 1 auto;\n\tposition: relative;\n\toverflow-x: auto;\n}\n\n[mol_grid_gap] {\n\tposition: absolute;\n\tpadding: .1px;\n\ttop: 0;\n\ttransform: translateZ(0);\n}\n\n[mol_grid_table] {\n\tborder-spacing: 0;\n\tdisplay: table-row-group;\n\tposition: relative;\n}\n\n[mol_grid_table] > * {\n\tdisplay: table-row;\n\ttransition: none;\n}\n\n[mol_grid_head] > *,\n[mol_grid_table] > * > * {\n\tdisplay: table-cell;\n\tpadding: var(--mol_gap_text);\n\twhite-space: nowrap;\n\tvertical-align: middle;\n\tbox-shadow: inset 2px 2px 0 -1px var(--mol_theme_line);\n}\n\n[mol_grid_row]:where(:first-child) > * {\n\tbox-shadow: inset 2px 0 0 -1px var(--mol_theme_line);\n}\n\n[mol_grid_table] > * > *:where(:first-child) {\n\tbox-shadow: inset 0px 2px 0 -1px var(--mol_theme_line);\n}\n\n[mol_grid_head] > * {\n\tbox-shadow: inset 2px -2px 0 -1px var(--mol_theme_line);\n}\n\n[mol_grid_head] > *:where(:first-child) {\n\tbox-shadow: inset 0px -2px 0 -1px var(--mol_theme_line);\n}\n\n[mol_grid_table] > [mol_grid_row]:where(:first-child) > *:where(:first-child) {\n\tbox-shadow: none;\n}\t\n\n[mol_grid_head] {\n\tdisplay: table-row;\n\ttransform: none !important;\n}\n\n/* [mol_grid_cell_number] {\n\ttext-align: right;\n} */\n\n[mol_grid_col_head] {\n\tfont-weight: inherit;\n\ttext-align: inherit;\n\tdisplay: table-cell;\n\tcolor: var(--mol_theme_shade);\n}\n\n[mol_grid_cell_dimmer] {\n\tdisplay: inline-block;\n\tvertical-align: inherit;\n}\n");
+    $mol_style_attach("mol/grid/grid.view.css", "[mol_grid] {\n\tdisplay: block;\n\tflex: 0 1 auto;\n\tposition: relative;\n\toverflow-x: auto;\n}\n\n[mol_grid_gap] {\n\tposition: absolute;\n\tpadding: .1px;\n\ttop: 0;\n\ttransform: translateZ(0);\n}\n\n[mol_grid_table] {\n\tborder-spacing: 0;\n\tdisplay: table-row-group;\n\tposition: relative;\n}\n\n[mol_grid_table] > * {\n\tdisplay: table-row;\n\ttransition: none;\n}\n\n[mol_grid_head] > *,\n[mol_grid_table] > * > * {\n\tdisplay: table-cell;\n\tpadding: var(--mol_gap_text);\n\twhite-space: nowrap;\n\tvertical-align: middle;\n\tbox-shadow: inset 2px 2px 0 -1px var(--mol_theme_line);\n}\n\n[mol_grid_row]:where(:first-child) > * {\n\tbox-shadow: inset 2px 0 0 -1px var(--mol_theme_line);\n}\n\n[mol_grid_table] > * > *:where(:first-child) {\n\tbox-shadow: inset 0px 2px 0 -1px var(--mol_theme_line);\n}\n\n[mol_grid_head] > * {\n\tbox-shadow: inset 2px -2px 0 -1px var(--mol_theme_line);\n}\n\n[mol_grid_head] > *:where(:first-child) {\n\tbox-shadow: inset 0px -2px 0 -1px var(--mol_theme_line);\n}\n\n[mol_grid_table] > [mol_grid_row]:where(:first-child) > *:where(:first-child) {\n\tbox-shadow: none;\n}\t\n\n[mol_grid_head] {\n\tdisplay: table-row;\n\ttransform: none !important;\n}\n\n/* [mol_grid_cell_number] {\n\ttext-align: end;\n} */\n\n[mol_grid_col_head] {\n\tfont-weight: inherit;\n\ttext-align: inherit;\n\tdisplay: table-cell;\n\tcolor: var(--mol_theme_shade);\n}\n\n[mol_grid_cell_dimmer] {\n\tdisplay: inline-block;\n\tvertical-align: inherit;\n}\n");
 })($ || ($ = {}));
 
 ;
 	($.$mol_link) = class $mol_link extends ($.$mol_view) {
 		uri_toggle(){
 			return "";
+		}
+		uri_unsafe(){
+			return (this.uri_toggle());
 		}
 		hint(){
 			return "";
@@ -9798,7 +10302,7 @@ var $;
 		attr(){
 			return {
 				...(super.attr()), 
-				"href": (this.uri_toggle()), 
+				"href": (this.uri_unsafe()), 
 				"title": (this.hint_safe()), 
 				"target": (this.target()), 
 				"download": (this.file_name()), 
@@ -9821,6 +10325,86 @@ var $;
 
 ;
 "use strict";
+var $;
+(function ($) {
+    function $mol_dom_safe_uri(uri) {
+        return uri.replace(/^(?=\w+script+:)/, 'about:blank#');
+    }
+    $.$mol_dom_safe_uri = $mol_dom_safe_uri;
+    function $mol_dom_safe_attr(val) {
+        return val;
+    }
+    $.$mol_dom_safe_attr = $mol_dom_safe_attr;
+    $.$mol_dom_safe_rules = {
+        // defaults
+        '': { id: $mol_dom_safe_attr },
+        // special
+        a: { href: $mol_dom_safe_uri },
+        img: { src: $mol_dom_safe_uri },
+        object: { src: $mol_dom_safe_uri },
+        // blocks
+        div: {},
+        p: {},
+        h1: {},
+        h2: {},
+        h3: {},
+        h4: {},
+        h5: {},
+        h6: {},
+        blockquote: {},
+        pre: {},
+        ul: {},
+        ol: {},
+        li: {},
+        details: {},
+        summary: {},
+        hr: {},
+        table: {},
+        tr: {},
+        td: {},
+        // inlines
+        span: {},
+        strong: {},
+        em: {},
+        br: {},
+        ins: {},
+        del: {},
+        code: {},
+    };
+    function $mol_dom_safe(nodes) {
+        const res = [];
+        for (const node of nodes) {
+            if (node.nodeType === node.TEXT_NODE) {
+                res.push(node);
+                continue;
+            }
+            if (node.nodeType === node.ELEMENT_NODE) {
+                const kids = this.$mol_dom_safe([...node.childNodes]);
+                const allowed = this.$mol_dom_safe_rules[node.localName];
+                if (!allowed) {
+                    res.push(...kids);
+                    continue;
+                }
+                for (const attr of [...node.attributes]) {
+                    const proc = allowed[attr.localName] ?? this.$mol_dom_safe_rules[''][attr.localName];
+                    if (proc)
+                        attr.nodeValue = proc(attr.nodeValue);
+                    else
+                        node.removeAttribute(attr.nodeName);
+                }
+                $mol_dom_render_children(node, kids);
+                res.push(node);
+                continue;
+            }
+        }
+        return res;
+    }
+    $.$mol_dom_safe = $mol_dom_safe;
+})($ || ($ = {}));
+
+;
+"use strict";
+
 
 ;
 "use strict";
@@ -9828,6 +10412,10 @@ var $;
 (function ($) {
     var $$;
     (function ($$) {
+        /**
+         * Dynamic hyperlink. It can add, change or remove parameters. A link that leads to the current page has [mol_link_current] attribute set to true.
+         * @see https://mol.hyoo.ru/#!section=demos/demo=mol_link_demo
+         */
         class $mol_link extends $.$mol_link {
             uri_toggle() {
                 return this.current() ? this.uri_off() : this.uri();
@@ -9882,6 +10470,9 @@ var $;
                         return '💥' + error.message;
                     return '';
                 }
+            }
+            uri_unsafe() {
+                return $mol_dom_safe_uri(super.uri_unsafe());
             }
         }
         __decorate([
@@ -9951,6 +10542,109 @@ var $;
 })($ || ($ = {}));
 
 ;
+	($.$mol_image) = class $mol_image extends ($.$mol_view) {
+		uri(){
+			return "";
+		}
+		title(){
+			return "";
+		}
+		loading(){
+			return "lazy";
+		}
+		decoding(){
+			return "async";
+		}
+		cors(){
+			return null;
+		}
+		natural_width(){
+			return 0;
+		}
+		natural_height(){
+			return 0;
+		}
+		load(next){
+			if(next !== undefined) return next;
+			return null;
+		}
+		dom_name(){
+			return "img";
+		}
+		attr(){
+			return {
+				...(super.attr()), 
+				"src": (this.uri()), 
+				"title": (this.hint()), 
+				"alt": (this.title()), 
+				"loading": (this.loading()), 
+				"decoding": (this.decoding()), 
+				"crossOrigin": (this.cors()), 
+				"width": (this.natural_width()), 
+				"height": (this.natural_height())
+			};
+		}
+		event(){
+			return {"load": (next) => (this.load(next))};
+		}
+		minimal_width(){
+			return 16;
+		}
+		minimal_height(){
+			return 16;
+		}
+	};
+	($mol_mem(($.$mol_image.prototype), "load"));
+
+
+;
+"use strict";
+
+
+;
+"use strict";
+var $;
+(function ($) {
+    var $$;
+    (function ($$) {
+        class $mol_image extends $.$mol_image {
+            natural_width(next) {
+                const dom = this.dom_node();
+                if (dom.naturalWidth)
+                    return dom.naturalWidth;
+                const found = this.uri().match(/\bwidth=(\d+)/);
+                return found ? Number(found[1]) : null;
+            }
+            natural_height(next) {
+                const dom = this.dom_node();
+                if (dom.naturalHeight)
+                    return dom.naturalHeight;
+                const found = this.uri().match(/\bheight=(\d+)/);
+                return found ? Number(found[1]) : null;
+            }
+            load() {
+                this.natural_width(null);
+                this.natural_height(null);
+            }
+        }
+        __decorate([
+            $mol_mem
+        ], $mol_image.prototype, "natural_width", null);
+        __decorate([
+            $mol_mem
+        ], $mol_image.prototype, "natural_height", null);
+        $$.$mol_image = $mol_image;
+    })($$ = $.$$ || ($.$$ = {}));
+})($ || ($ = {}));
+
+;
+"use strict";
+var $;
+(function ($) {
+    $mol_style_attach("mol/image/image.view.css", "[mol_image] {\n\tborder-radius: var(--mol_gap_round);\n\toverflow: hidden;\n\tflex: 0 1 auto;\n\tmax-width: 100%;\n\tobject-fit: cover;\n\theight: fit-content;\n}\n");
+})($ || ($ = {}));
+
+;
 	($.$mol_link_iconed) = class $mol_link_iconed extends ($.$mol_link) {
 		icon(){
 			return "";
@@ -9980,6 +10674,7 @@ var $;
 ;
 "use strict";
 
+
 ;
 "use strict";
 var $;
@@ -9989,6 +10684,7 @@ var $;
         class $mol_link_iconed extends $.$mol_link_iconed {
             icon() {
                 return `https://favicon.yandex.net/favicon/${this.host()}?color=0,0,0,0&size=32&stub=1`;
+                // return `https://api.faviconkit.com/${ this.host() }/16`
             }
             host() {
                 const base = this.$.$mol_state_arg.href();
@@ -10092,6 +10788,7 @@ var $;
 ;
 "use strict";
 
+
 ;
 "use strict";
 var $;
@@ -10181,6 +10878,7 @@ var $;
 ;
 "use strict";
 
+
 ;
 	($.$mol_frame) = class $mol_frame extends ($.$mol_embed_native) {
 		allow(){
@@ -10227,14 +10925,19 @@ var $;
 ;
 "use strict";
 
+
 ;
 "use strict";
 var $;
 (function ($) {
     var $$;
     (function ($$) {
+        /**
+         * @see https://mol.hyoo.ru/#!section=demos/demo=mol_frame_demo
+         */
         class $mol_frame extends $.$mol_frame {
             window() {
+                // if( this.html() ) return ( this.dom_node() as HTMLIFrameElement ).contentWindow!
                 return super.window();
             }
             allow() {
@@ -10323,6 +11026,7 @@ var $;
 ;
 "use strict";
 
+
 ;
 "use strict";
 var $;
@@ -10356,6 +11060,7 @@ var $;
 
 ;
 "use strict";
+
 
 ;
 "use strict";
@@ -10396,6 +11101,7 @@ var $;
 ;
 "use strict";
 
+
 ;
 "use strict";
 var $;
@@ -10432,6 +11138,7 @@ var $;
 
 ;
 "use strict";
+
 
 ;
 "use strict";
@@ -10517,6 +11224,7 @@ var $;
 
 ;
 "use strict";
+
 
 ;
 "use strict";
@@ -10613,12 +11321,17 @@ var $;
 ;
 "use strict";
 
+
 ;
 "use strict";
 var $;
 (function ($) {
     var $$;
     (function ($$) {
+        /**
+         * Component which expands any content on title click.
+         * @see https://mol.hyoo.ru/#!section=demos/demo=mol_expander_demo
+         */
         class $mol_expander extends $.$mol_expander {
             rows() {
                 return [
@@ -10948,12 +11661,17 @@ var $;
 ;
 "use strict";
 
+
 ;
 "use strict";
 var $;
 (function ($) {
     var $$;
     (function ($$) {
+        /**
+         * Markdown visualizer.
+         * @see https://mol.hyoo.ru/#!section=demos/demo=mol_text_demo
+         */
         class $mol_text extends $.$mol_text {
             flow_tokens() {
                 const tokens = [];
@@ -11286,7 +12004,1705 @@ var $;
 "use strict";
 var $;
 (function ($) {
-    $mol_style_attach("mol/text/text/text.view.css", "[mol_text] {\n\tline-height: 1.5em;\n\tbox-sizing: border-box;\n\tborder-radius: var(--mol_gap_round);\n\twhite-space: pre-line;\n\tdisplay: flex;\n\tflex-direction: column;\n\tflex: 0 0 auto;\n\ttab-size: 4;\n}\n\n[mol_text_paragraph] {\n\tpadding: var(--mol_gap_text);\n\toverflow: auto;\n\toverflow-x: overlay;\n\tmax-width: 100%;\n\tdisplay: block;\n\tmax-width: 60rem;\n\tbreak-inside: avoid;\n}\n\n[mol_text_spoiler_label_paragraph] {\n\tpadding: 0;\n}\n\n[mol_text_span] {\n\tdisplay: inline;\n}\n\n[mol_text_string] {\n\tdisplay: inline;\n\tflex: 0 1 auto;\n\twhite-space: normal;\n}\n\n[mol_text_quote] {\n\tmargin: var(--mol_gap_block);\n\tpadding: var(--mol_gap_block);\n\tbackground: var(--mol_theme_card);\n\tbox-shadow: 0 0 0 1px var(--mol_theme_back);\n\tbreak-inside: avoid;\n}\n\n[mol_text_header] {\n\tdisplay: block;\n\ttext-shadow: 0 0;\n\tfont-weight: normal;\n\tbreak-after: avoid;\n}\n\n* + [mol_text_header] {\n\tmargin-top: 0.75rem;\n}\n\nh1[mol_text_header] {\n\tfont-size: 1.5rem;\n}\n\nh2[mol_text_header] {\n\tfont-size: 1.5rem;\n\tfont-style: italic;\n}\n\nh3[mol_text_header] {\n\tfont-size: 1.25rem;\n}\n\nh4[mol_text_header] {\n\tfont-size: 1.25em;\n\tfont-style: italic;\n}\n\nh5[mol_text_header] {\n\tfont-size: 1rem;\n}\n\nh6[mol_text_header] {\n\tfont-size: 1rem;\n\tfont-style: italic;\n}\n\n[mol_text_header_link] {\n\tcolor: inherit;\n}\n\n[mol_text_table] {\n\tbreak-inside: avoid;\n}\n\n[mol_text_table_cell] {\n\twidth: auto;\n\tdisplay: table-cell;\n\tvertical-align: baseline;\n\tpadding: 0;\n\tborder-radius: 0;\n}\n\n[mol_text_grid] {\n\tbreak-inside: avoid;\n}\n\n[mol_text_grid_cell] {\n\twidth: auto;\n\tdisplay: table-cell;\n\tvertical-align: top;\n\tpadding: 0;\n\tborder-radius: 0;\n}\n\n[mol_text_cut] {\n\tborder: none;\n\twidth: 100%;\n\tbox-shadow: 0 0 0 1px var(--mol_theme_line);\n}\n\n[mol_text_link_http],\n[mol_text_link] {\n\tpadding: 0;\n\tdisplay: inline;\n\twhite-space: nowrap;\n}\n\n[mol_text_link_icon] + [mol_text_embed] {\n\tmargin-left: -1.5rem;\n}\n\n[mol_text_embed_youtube] {\n\tdisplay: inline;\n}\n\n[mol_text_embed_youtube_image],\n[mol_text_embed_youtube_frame],\n[mol_text_embed_object] {\n\tobject-fit: contain;\n\tobject-position: center;\n\twidth: 100vw;\n\tmax-height: calc( 100vh - 6rem );\n}\n[mol_text_embed_object_fallback] {\n\tpadding: 0;\n}\n[mol_text_embed_image] {\n\tobject-fit: contain;\n\tobject-position: center;\n\tdisplay: inline;\n\t/* max-height: calc( 100vh - 6rem ); */\n\tvertical-align: top;\n}\n\n[mol_text_pre] {\n\twhite-space: pre;\n\toverflow-x: auto;\n\toverflow-x: overlay;\n\ttab-size: 2;\n\tbreak-inside: avoid;\n}\n\n[mol_text_code_line] {\n\tdisplay: inline-block;\n}\n\n[mol_text_type=\"strong\"] {\n\ttext-shadow: 0 0;\n\tfilter: contrast(1.5);\n}\n\n[mol_text_type=\"emphasis\"] {\n\tfont-style: italic;\n}\n\n[mol_text_type=\"insert\"] {\n\tcolor: var(--mol_theme_special);\n}\n\n[mol_text_type=\"delete\"] {\n\tcolor: var(--mol_theme_shade);\n}\n\n[mol_text_type=\"remark\"] {\n\tcolor: var(--mol_theme_shade);\n}\n\n[mol_text_type=\"quote\"] {\n\tfont-style: italic;\n}\n");
+    $mol_style_attach("mol/text/text/text.view.css", "[mol_text] {\n\tline-height: 1.5em;\n\tbox-sizing: border-box;\n\tborder-radius: var(--mol_gap_round);\n\twhite-space: pre-line;\n\tdisplay: flex;\n\tflex-direction: column;\n\tflex: 0 0 auto;\n\ttab-size: 4;\n}\n\n[mol_text_paragraph] {\n\tpadding: var(--mol_gap_text);\n\toverflow: auto;\n\toverflow-x: overlay;\n\tmax-width: 100%;\n\tdisplay: block;\n\tmax-width: 60rem;\n\tbreak-inside: avoid;\n}\n\n[mol_text_spoiler_label_paragraph] {\n\tpadding: 0;\n}\n\n[mol_text_span] {\n\tdisplay: inline;\n}\n\n[mol_text_string] {\n\tdisplay: inline;\n\tflex: 0 1 auto;\n\twhite-space: normal;\n}\n\n[mol_text_quote] {\n\tmargin: var(--mol_gap_block);\n\tpadding: var(--mol_gap_block);\n\tbackground: var(--mol_theme_card);\n\tbox-shadow: 0 0 0 1px var(--mol_theme_back);\n\tbreak-inside: avoid;\n}\n\n[mol_text_header] {\n\tdisplay: block;\n\ttext-shadow: 0 0;\n\tfont-weight: normal;\n\tbreak-after: avoid;\n\tletter-spacing: 2px;\n}\n\n* + [mol_text_header] {\n\tmargin-top: 0.75rem;\n}\n\nh1[mol_text_header] {\n\tfont-size: 1.5rem;\n}\n\nh2[mol_text_header] {\n\tfont-size: 1.5rem;\n\tfont-style: italic;\n}\n\nh3[mol_text_header] {\n\tfont-size: 1.25rem;\n}\n\nh4[mol_text_header] {\n\tfont-size: 1.25em;\n\tfont-style: italic;\n}\n\nh5[mol_text_header] {\n\tfont-size: 1rem;\n}\n\nh6[mol_text_header] {\n\tfont-size: 1rem;\n\tfont-style: italic;\n}\n\n[mol_text_header_link] {\n\tcolor: inherit;\n}\n\n[mol_text_table] {\n\tbreak-inside: avoid;\n}\n\n[mol_text_table_cell] {\n\twidth: auto;\n\tdisplay: table-cell;\n\tvertical-align: baseline;\n\tpadding: 0;\n\tborder-radius: 0;\n}\n\n[mol_text_grid] {\n\tbreak-inside: avoid;\n}\n\n[mol_text_grid_cell] {\n\twidth: auto;\n\tdisplay: table-cell;\n\tvertical-align: top;\n\tpadding: 0;\n\tborder-radius: 0;\n}\n\n[mol_text_cut] {\n\tborder: none;\n\twidth: 100%;\n\tbox-shadow: 0 0 0 1px var(--mol_theme_line);\n}\n\n[mol_text_link_http],\n[mol_text_link] {\n\tpadding: 0;\n\tdisplay: inline;\n\twhite-space: nowrap;\n}\n\n[mol_text_link_icon] + [mol_text_embed] {\n\tmargin-inline-start: -1.5rem;\n}\n\n[mol_text_embed_youtube] {\n\tdisplay: inline;\n}\n\n[mol_text_embed_youtube_image],\n[mol_text_embed_youtube_frame],\n[mol_text_embed_object] {\n\tobject-fit: contain;\n\tobject-position: center;\n\twidth: 100vw;\n\tmax-height: calc( 100vh - 6rem );\n}\n[mol_text_embed_object_fallback] {\n\tpadding: 0;\n}\n[mol_text_embed_image] {\n\tobject-fit: contain;\n\tobject-position: center;\n\tdisplay: inline;\n\t/* max-height: calc( 100vh - 6rem ); */\n\tvertical-align: top;\n}\n\n[mol_text_pre] {\n\twhite-space: pre;\n\toverflow-x: auto;\n\toverflow-x: overlay;\n\ttab-size: 2;\n\tbreak-inside: avoid;\n}\n\n[mol_text_code_line] {\n\tdisplay: inline-block;\n}\n\n[mol_text_type=\"strong\"] {\n\ttext-shadow: 0 0;\n\tfilter: contrast(1.5);\n}\n\n[mol_text_type=\"emphasis\"] {\n\tfont-style: italic;\n}\n\n[mol_text_type=\"insert\"] {\n\tcolor: var(--mol_theme_special);\n}\n\n[mol_text_type=\"delete\"] {\n\tcolor: var(--mol_theme_shade);\n}\n\n[mol_text_type=\"remark\"] {\n\tcolor: var(--mol_theme_shade);\n}\n\n[mol_text_type=\"quote\"] {\n\tfont-style: italic;\n}\n");
+})($ || ($ = {}));
+
+;
+	($.$mol_row) = class $mol_row extends ($.$mol_view) {};
+
+
+;
+"use strict";
+var $;
+(function ($) {
+    $mol_style_attach("mol/row/row.view.css", "[mol_row] {\n\tdisplay: flex;\n\tflex-wrap: wrap;\n\talign-items: flex-start;\n\talign-content: flex-start;\n\tjustify-content: flex-start;\n\tpadding: var(--mol_gap_block);\n\tgap: var(--mol_gap_block);\n\tflex: 0 0 auto;\n\tbox-sizing: border-box;\n\tmax-width: 100%;\n}\n\n[mol_row] > * {\n\tmax-width: 100%;\n}\n");
+})($ || ($ = {}));
+
+;
+"use strict";
+
+
+;
+	($.$bog_pazzle_board_victory) = class $bog_pazzle_board_victory extends ($.$mol_view) {
+		Title(){
+			const obj = new this.$.$mol_text();
+			(obj.text) = () => ("Пазл собран!");
+			return obj;
+		}
+		stats(){
+			return "";
+		}
+		Stats(){
+			const obj = new this.$.$mol_text();
+			(obj.text) = () => ((this.stats()));
+			return obj;
+		}
+		Best(){
+			const obj = new this.$.$mol_text();
+			(obj.text) = () => ((this.best()));
+			return obj;
+		}
+		Again(){
+			const obj = new this.$.$mol_button_major();
+			(obj.title) = () => ("Ещё раз");
+			(obj.click) = (next) => ((this.again(next)));
+			return obj;
+		}
+		Home(){
+			const obj = new this.$.$mol_button_minor();
+			(obj.title) = () => ("Другая картинка");
+			(obj.click) = (next) => ((this.home(next)));
+			return obj;
+		}
+		Saves(){
+			const obj = new this.$.$mol_button_minor();
+			(obj.title) = () => ("Мои пазлы");
+			(obj.click) = (next) => ((this.saves(next)));
+			return obj;
+		}
+		Actions(){
+			const obj = new this.$.$mol_row();
+			(obj.sub) = () => ([
+				(this.Again()), 
+				(this.Home()), 
+				(this.Saves())
+			]);
+			return obj;
+		}
+		card_content(){
+			return [
+				(this.Title()), 
+				(this.Stats()), 
+				(this.Best()), 
+				(this.Actions())
+			];
+		}
+		Card(){
+			const obj = new this.$.$mol_list();
+			(obj.rows) = () => ((this.card_content()));
+			return obj;
+		}
+		moves(){
+			return 0;
+		}
+		time(){
+			return "";
+		}
+		best(){
+			return "";
+		}
+		again(next){
+			if(next !== undefined) return next;
+			return null;
+		}
+		home(next){
+			if(next !== undefined) return next;
+			return null;
+		}
+		saves(next){
+			if(next !== undefined) return next;
+			return null;
+		}
+		sub(){
+			return [(this.Card())];
+		}
+	};
+	($mol_mem(($.$bog_pazzle_board_victory.prototype), "Title"));
+	($mol_mem(($.$bog_pazzle_board_victory.prototype), "Stats"));
+	($mol_mem(($.$bog_pazzle_board_victory.prototype), "Best"));
+	($mol_mem(($.$bog_pazzle_board_victory.prototype), "Again"));
+	($mol_mem(($.$bog_pazzle_board_victory.prototype), "Home"));
+	($mol_mem(($.$bog_pazzle_board_victory.prototype), "Saves"));
+	($mol_mem(($.$bog_pazzle_board_victory.prototype), "Actions"));
+	($mol_mem(($.$bog_pazzle_board_victory.prototype), "Card"));
+	($mol_mem(($.$bog_pazzle_board_victory.prototype), "again"));
+	($mol_mem(($.$bog_pazzle_board_victory.prototype), "home"));
+	($mol_mem(($.$bog_pazzle_board_victory.prototype), "saves"));
+
+
+;
+"use strict";
+var $;
+(function ($) {
+    /** Партии и картинки в localStorage. */
+    class $bog_pazzle_store extends $mol_object {
+        /** Больше партий не держим — localStorage не резиновый. */
+        static limit = 8;
+        /** Пауза, после которой секундомер считается остановленным. */
+        static idle = 30000;
+        /** Идентификатор черновика — партии, которую ещё не начали. */
+        static draft = 'draft';
+        static cell(key, next) {
+            return this.$.$mol_state_local.value('$bog_pazzle.' + key, next);
+        }
+        static ids(next) {
+            return this.cell('ids', next) ?? [];
+        }
+        static save(id, next) {
+            if (!id)
+                return null;
+            return this.cell('save.' + id, next);
+        }
+        static image(id, next) {
+            if (!id)
+                return '';
+            return this.cell('image.' + id, next) ?? '';
+        }
+        static thumb(id, next) {
+            if (!id)
+                return '';
+            return this.cell('thumb.' + id, next) ?? '';
+        }
+        /** Партия, которую открывает экран игры. */
+        static current(next) {
+            return this.cell('current', next) ?? '';
+        }
+        static patch(id, patch) {
+            const prev = this.save(id);
+            if (!prev)
+                return null;
+            return this.save(id, { ...prev, ...patch, updated: Date.now() });
+        }
+        static blank(id, rows, columns, numbers) {
+            const now = Date.now();
+            return {
+                id,
+                rows,
+                columns,
+                numbers,
+                order: this.shuffled(rows * columns),
+                moves: 0,
+                elapsed: 0,
+                last_at: 0,
+                solved: false,
+                best_moves: 0,
+                best_elapsed: 0,
+                created: now,
+                updated: now,
+            };
+        }
+        /** Кладёт черновик в список партий под свежим идентификатором и делает его текущим. */
+        static start() {
+            const draft = this.save(this.draft);
+            if (!draft || !this.image(this.draft))
+                return '';
+            const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+            this.spacious(() => {
+                this.image(id, this.image(this.draft));
+                this.thumb(id, this.thumb(this.draft));
+                this.save(id, this.blank(id, draft.rows, draft.columns, draft.numbers));
+            });
+            const kept = [id, ...this.ids().filter(item => item !== id)];
+            for (const dropped of kept.slice(this.limit))
+                this.forget(dropped);
+            this.ids(kept.slice(0, this.limit));
+            this.current(id);
+            return id;
+        }
+        /** Хранилище кончилось — сносим самую старую партию и пробуем ещё раз. */
+        static spacious(write) {
+            for (let attempt = 0;; attempt++) {
+                try {
+                    return write();
+                }
+                catch (error) {
+                    const ids = this.ids();
+                    if (attempt >= this.limit || !ids.length)
+                        return $mol_fail(error);
+                    this.drop(ids[ids.length - 1]);
+                }
+            }
+        }
+        static forget(id) {
+            this.save(id, null);
+            this.image(id, null);
+            this.thumb(id, null);
+        }
+        static drop(id) {
+            this.forget(id);
+            this.ids(this.ids().filter(item => item !== id));
+            if (this.current() === id)
+                this.current(null);
+        }
+        static shuffled(count) {
+            const order = Array.from({ length: count }, (_, index) => index);
+            for (let index = order.length - 1; index > 0; index--) {
+                const swap = Math.floor(Math.random() * (index + 1));
+                [order[index], order[swap]] = [order[swap], order[index]];
+            }
+            if (count > 1 && this.assembled(order)) {
+                ;
+                [order[0], order[1]] = [order[1], order[0]];
+            }
+            return order;
+        }
+        static assembled(order) {
+            return order.length > 0 && order.every((piece, slot) => piece === slot);
+        }
+        /** Сколько секундомер натикал с последнего хода. Долгая пауза не идёт в зачёт. */
+        static gap(save, now) {
+            if (!save || save.solved || !save.last_at)
+                return 0;
+            const gap = now - save.last_at;
+            return gap > 0 && gap < this.idle ? gap : 0;
+        }
+        static clock(ms) {
+            const total = Math.max(0, Math.floor(ms / 1000));
+            const minutes = Math.floor(total / 60);
+            const seconds = total % 60;
+            return minutes + ':' + String(seconds).padStart(2, '0');
+        }
+        /** «1 ход», «2 хода», «5 ходов». */
+        static moves_label(count) {
+            const tail = count % 100;
+            const last = count % 10;
+            if (tail > 10 && tail < 20)
+                return count + ' ходов';
+            if (last === 1)
+                return count + ' ход';
+            if (last >= 2 && last <= 4)
+                return count + ' хода';
+            return count + ' ходов';
+        }
+        static day(stamp) {
+            return new Date(stamp).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+        }
+    }
+    $.$bog_pazzle_store = $bog_pazzle_store;
+})($ || ($ = {}));
+
+;
+"use strict";
+
+
+;
+"use strict";
+var $;
+(function ($) {
+    var $$;
+    (function ($$) {
+        class $bog_pazzle_board_victory extends $.$bog_pazzle_board_victory {
+            stats() {
+                return this.$.$bog_pazzle_store.moves_label(this.moves()) + ' за ' + this.time();
+            }
+            card_content() {
+                const rows = [this.Title(), this.Stats()];
+                if (this.best())
+                    rows.push(this.Best());
+                rows.push(this.Actions());
+                return rows;
+            }
+        }
+        __decorate([
+            $mol_mem
+        ], $bog_pazzle_board_victory.prototype, "card_content", null);
+        $$.$bog_pazzle_board_victory = $bog_pazzle_board_victory;
+    })($$ = $.$$ || ($.$$ = {}));
+})($ || ($ = {}));
+
+;
+"use strict";
+var $;
+(function ($) {
+    var $$;
+    (function ($$) {
+        const { rem } = $mol_style_unit;
+        $mol_style_define($bog_pazzle_board_victory, {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: $mol_gap.block,
+            zIndex: 20,
+            background: { color: '#00000066' },
+            border: { radius: $mol_gap.round },
+            Card: {
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: $mol_gap.text,
+                maxWidth: rem(22),
+                padding: $mol_gap.block,
+                textAlign: 'center',
+                background: { color: $mol_theme.card },
+                border: { radius: $mol_gap.round },
+                boxShadow: '0 12px 40px #00000066',
+            },
+            Title: {
+                font: {
+                    size: rem(1.5),
+                    weight: 'bold',
+                },
+            },
+            Best: {
+                color: $mol_theme.shade,
+                font: { size: rem(.875) },
+            },
+            Actions: {
+                display: 'flex',
+                flexWrap: 'wrap',
+                justifyContent: 'center',
+                gap: $mol_gap.text,
+            },
+        });
+        $mol_style_attach('bog_pazzle_board_victory_pop', `
+		@keyframes bog_pazzle_victory_pop {
+			from { opacity: 0; transform: scale( .85 ) }
+			to { opacity: 1; transform: scale( 1 ) }
+		}
+		[bog_pazzle_board_victory] {
+			backdrop-filter: blur( 3px );
+			-webkit-backdrop-filter: blur( 3px );
+		}
+		[bog_pazzle_board_victory_card] {
+			animation: bog_pazzle_victory_pop .35s ease both;
+		}
+	`);
+    })($$ = $.$$ || ($.$$ = {}));
+})($ || ($ = {}));
+
+;
+	($.$rise_drag) = class $rise_drag extends ($.$mol_plugin) {
+		pointerdown(next){
+			if(next !== undefined) return next;
+			return null;
+		}
+		dragged(next){
+			if(next !== undefined) return next;
+			return false;
+		}
+		pointermove_listener(){
+			return null;
+		}
+		pointerup_listener(){
+			return null;
+		}
+		x(next){
+			if(next !== undefined) return next;
+			return 0;
+		}
+		y(next){
+			if(next !== undefined) return next;
+			return 0;
+		}
+		repos_x(id){
+			return 1;
+		}
+		repos_y(id){
+			return 1;
+		}
+		on_drag(next){
+			if(next !== undefined) return next;
+			return null;
+		}
+		on_drag_start(next){
+			if(next !== undefined) return next;
+			return null;
+		}
+		on_drag_end(next){
+			if(next !== undefined) return next;
+			return null;
+		}
+		drag(next){
+			if(next !== undefined) return next;
+			return null;
+		}
+		drag_start(next){
+			if(next !== undefined) return next;
+			return null;
+		}
+		drag_end(next){
+			if(next !== undefined) return next;
+			return null;
+		}
+		use_buttons(){
+			return [0];
+		}
+		event(){
+			return {...(super.event()), "pointerdown": (next) => (this.pointerdown(next))};
+		}
+		attr(){
+			return {...(super.attr()), "rise_dragged": (this.dragged())};
+		}
+		auto(){
+			return [(this.pointermove_listener()), (this.pointerup_listener())];
+		}
+		drags_synced(){
+			return [];
+		}
+	};
+	($mol_mem(($.$rise_drag.prototype), "pointerdown"));
+	($mol_mem(($.$rise_drag.prototype), "dragged"));
+	($mol_mem(($.$rise_drag.prototype), "x"));
+	($mol_mem(($.$rise_drag.prototype), "y"));
+	($mol_mem(($.$rise_drag.prototype), "on_drag"));
+	($mol_mem(($.$rise_drag.prototype), "on_drag_start"));
+	($mol_mem(($.$rise_drag.prototype), "on_drag_end"));
+	($mol_mem(($.$rise_drag.prototype), "drag"));
+	($mol_mem(($.$rise_drag.prototype), "drag_start"));
+	($mol_mem(($.$rise_drag.prototype), "drag_end"));
+
+
+;
+"use strict";
+
+
+;
+"use strict";
+var $;
+(function ($) {
+    var $$;
+    (function ($$) {
+        class $rise_drag extends $.$rise_drag {
+            repos_x(val) {
+                return val;
+            }
+            repos_y(val) {
+                return val;
+            }
+            start_event;
+            start_pos;
+            drags_synced_frozen = [];
+            drag_start(event) {
+                this.start_event = event;
+                this.start_pos = { x: this.x(), y: this.y() };
+                this.dragged(true);
+                this.on_drag_start(event);
+            }
+            drag(event) {
+                this.x(this.start_pos.x + this.repos_x(event.x - this.start_event.x));
+                this.y(this.start_pos.y + this.repos_y(event.y - this.start_event.y));
+                this.on_drag(event);
+            }
+            drag_end(event) {
+                this.dragged(false);
+                this.on_drag_end(event);
+            }
+            pointerdown(event) {
+                if (!this.use_buttons().includes(event.button))
+                    return;
+                this.drag_start(event);
+                this.drags_synced_frozen = this.drags_synced();
+                this.drags_synced_frozen.forEach(d => d.drag_start(event));
+                //immediate flush:
+                this.pointermove_listener();
+                this.pointerup_listener();
+            }
+            pointermove_listener() {
+                $mol_wire_solid();
+                if (!this.dragged())
+                    return null;
+                return new $mol_dom_listener(this.$.$mol_dom_context.document, 'pointermove', this.handle_pointermove_async);
+            }
+            handle_pointermove_async = $mol_wire_async((event) => {
+                this.drag(event);
+                this.drags_synced_frozen.forEach(d => d.drag(event));
+            });
+            pointerup_listener() {
+                $mol_wire_solid();
+                if (!this.dragged())
+                    return null;
+                return new $mol_dom_listener(this.$.$mol_dom_context.document, 'pointerup', this.handle_pointerup_async);
+            }
+            handle_pointerup_async = $mol_wire_async((event) => {
+                this.drag_end(event);
+                this.drags_synced_frozen.forEach(d => d.drag_end(event));
+                this.drags_synced_frozen = [];
+                //immediate flush:
+                this.pointerup_listener();
+                this.pointermove_listener();
+            });
+        }
+        __decorate([
+            $mol_mem
+        ], $rise_drag.prototype, "pointermove_listener", null);
+        __decorate([
+            $mol_mem
+        ], $rise_drag.prototype, "pointerup_listener", null);
+        $$.$rise_drag = $rise_drag;
+    })($$ = $.$$ || ($.$$ = {}));
+})($ || ($ = {}));
+
+;
+	($.$rise_drag_view) = class $rise_drag_view extends ($.$mol_view) {
+		on_drag_start(next){
+			if(next !== undefined) return next;
+			return null;
+		}
+		on_drag_end(next){
+			if(next !== undefined) return next;
+			return null;
+		}
+		on_drag(next){
+			if(next !== undefined) return next;
+			return null;
+		}
+		dragged(){
+			return (this.Drag().dragged());
+		}
+		y(next){
+			if(next !== undefined) return next;
+			return 0;
+		}
+		x(next){
+			if(next !== undefined) return next;
+			return 0;
+		}
+		drags_synced(){
+			return [];
+		}
+		repos_x(id){
+			return 1;
+		}
+		repos_y(id){
+			return 1;
+		}
+		pointerdown(next){
+			return (this.Drag().pointerdown(next));
+		}
+		Drag(){
+			const obj = new this.$.$rise_drag();
+			(obj.on_drag_start) = (next) => ((this.on_drag_start(next)));
+			(obj.on_drag_end) = (next) => ((this.on_drag_end(next)));
+			(obj.on_drag) = (next) => ((this.on_drag(next)));
+			(obj.y) = (next) => ((this.y(next)));
+			(obj.x) = (next) => ((this.x(next)));
+			(obj.drags_synced) = () => ((this.drags_synced()));
+			(obj.repos_x) = (id) => ((this.repos_x(id)));
+			(obj.repos_y) = (id) => ((this.repos_y(id)));
+			return obj;
+		}
+		plugins(){
+			return [...(super.plugins()), (this.Drag())];
+		}
+		style(){
+			return {...(super.style()), "userSelect": "none"};
+		}
+	};
+	($mol_mem(($.$rise_drag_view.prototype), "on_drag_start"));
+	($mol_mem(($.$rise_drag_view.prototype), "on_drag_end"));
+	($mol_mem(($.$rise_drag_view.prototype), "on_drag"));
+	($mol_mem(($.$rise_drag_view.prototype), "y"));
+	($mol_mem(($.$rise_drag_view.prototype), "x"));
+	($mol_mem(($.$rise_drag_view.prototype), "Drag"));
+
+
+;
+"use strict";
+
+
+;
+"use strict";
+var $;
+(function ($) {
+    var $$;
+    (function ($$) {
+        class $rise_drag_view extends $.$rise_drag_view {
+            repos_x(val) {
+                return val;
+            }
+            repos_y(val) {
+                return val;
+            }
+        }
+        $$.$rise_drag_view = $rise_drag_view;
+    })($$ = $.$$ || ($.$$ = {}));
+})($ || ($ = {}));
+
+;
+	($.$bog_pazzle_board_tile) = class $bog_pazzle_board_tile extends ($.$rise_drag_view) {
+		Number(){
+			const obj = new this.$.$mol_text();
+			(obj.text) = () => ((this.label()));
+			return obj;
+		}
+		rows(){
+			return 1;
+		}
+		columns(){
+			return 1;
+		}
+		piece(){
+			return 0;
+		}
+		slot(){
+			return 0;
+		}
+		image_uri(){
+			return "";
+		}
+		playable(){
+			return false;
+		}
+		locked(){
+			return false;
+		}
+		selected(){
+			return false;
+		}
+		label(){
+			return "";
+		}
+		sub(){
+			return [(this.Number())];
+		}
+	};
+	($mol_mem(($.$bog_pazzle_board_tile.prototype), "Number"));
+
+
+;
+"use strict";
+
+
+;
+"use strict";
+var $;
+(function ($) {
+    var $$;
+    (function ($$) {
+        class $bog_pazzle_board_tile extends $.$bog_pazzle_board_tile {
+            /** В предпросмотре таскать нечего — снимаем drag-плагин целиком. */
+            plugins() {
+                return this.playable() ? super.plugins() : [];
+            }
+            /** Закреплённый фрагмент не сдвигается ни на пиксель. */
+            repos_x(shift) { return this.locked() ? 0 : shift; }
+            repos_y(shift) { return this.locked() ? 0 : shift; }
+            columns_safe() { return Math.max(1, this.columns()); }
+            rows_safe() { return Math.max(1, this.rows()); }
+            piece_row() { return Math.floor(this.piece() / this.columns_safe()); }
+            piece_column() { return this.piece() % this.columns_safe(); }
+            /**
+             * Фон — вся картинка, растянутая на размер сетки и сдвинутая на нужный кусок.
+             * Подсветка и курсор тоже здесь: в таблице стилей `:where` из `@`-блоков веса не добавляет.
+             */
+            style() {
+                const style = super.style();
+                const rows = this.rows_safe();
+                const columns = this.columns_safe();
+                const uri = this.image_uri();
+                if (uri) {
+                    style.backgroundImage = 'url(' + uri + ')';
+                    style.backgroundSize = columns * 100 + '% ' + rows * 100 + '%';
+                    style.backgroundPosition =
+                        (columns === 1 ? 0 : this.piece_column() / (columns - 1) * 100) + '% ' +
+                            (rows === 1 ? 0 : this.piece_row() / (rows - 1) * 100) + '%';
+                }
+                const dragged = this.playable() && this.dragged();
+                style.boxShadow = this.selected()
+                    ? 'inset 0 0 0 3px var(--mol_theme_focus)'
+                    : 'inset 0 0 0 1px var(--mol_theme_line)';
+                if (dragged)
+                    style.boxShadow += ', 0 8px 24px #00000066';
+                style.cursor = this.playable() && !this.locked() ? (dragged ? 'grabbing' : 'grab') : 'default';
+                const x = this.x();
+                const y = this.y();
+                if (x || y)
+                    style.transform = 'translate(' + x + 'px, ' + y + 'px)';
+                if (dragged) {
+                    style.zIndex = 10;
+                    // иначе под курсором окажется сам фрагмент, и цель хода не найти
+                    style.pointerEvents = 'none';
+                }
+                return style;
+            }
+            attr() {
+                return {
+                    ...super.attr(),
+                    'data-pazzle-slot': String(this.slot()),
+                    bog_pazzle_selected: this.selected(),
+                    bog_pazzle_playable: this.playable(),
+                };
+            }
+        }
+        __decorate([
+            $mol_mem
+        ], $bog_pazzle_board_tile.prototype, "plugins", null);
+        $$.$bog_pazzle_board_tile = $bog_pazzle_board_tile;
+    })($$ = $.$$ || ($.$$ = {}));
+})($ || ($ = {}));
+
+;
+"use strict";
+var $;
+(function ($) {
+    var $$;
+    (function ($$) {
+        const { rem } = $mol_style_unit;
+        $mol_style_define($bog_pazzle_board_tile, {
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'flex-end',
+            position: 'relative',
+            minWidth: 0,
+            minHeight: 0,
+            touchAction: 'none',
+            userSelect: 'none',
+            background: {
+                repeat: 'no-repeat',
+                color: $mol_theme.back,
+            },
+            Number: {
+                font: { size: rem(.75) },
+                padding: {
+                    top: 0,
+                    bottom: 0,
+                    left: $mol_gap.round,
+                    right: $mol_gap.round,
+                },
+                margin: rem(.125),
+                background: { color: $mol_theme.shade },
+                color: $mol_theme.card,
+                border: { radius: $mol_gap.round },
+                pointerEvents: 'none',
+                ':empty': {
+                    display: 'none',
+                },
+            },
+        });
+    })($$ = $.$$ || ($.$$ = {}));
+})($ || ($ = {}));
+
+;
+	($.$mol_text_list) = class $mol_text_list extends ($.$mol_text) {
+		type(){
+			return "";
+		}
+		auto_scroll(){
+			return null;
+		}
+		attr(){
+			return {...(super.attr()), "mol_text_list_type": (this.type())};
+		}
+		Paragraph(id){
+			const obj = new this.$.$mol_text_list_item();
+			(obj.index) = () => ((this.item_index(id)));
+			(obj.sub) = () => ((this.block_content(id)));
+			return obj;
+		}
+	};
+	($mol_mem_key(($.$mol_text_list.prototype), "Paragraph"));
+	($.$mol_text_list_item) = class $mol_text_list_item extends ($.$mol_paragraph) {
+		index(){
+			return 0;
+		}
+		attr(){
+			return {...(super.attr()), "mol_text_list_item_index": (this.index())};
+		}
+	};
+
+
+;
+"use strict";
+var $;
+(function ($) {
+    $mol_style_attach("mol/text/list/list.view.css", "[mol_text_list] {\n\tpadding-inline-start: 1.75rem;\n}\n\n[mol_text_list_item] {\n\tcontain: none;\n\tdisplay: list-item;\n}\n\n[mol_text_list_item]::before {\n\tcontent: attr( mol_text_list_item_index ) \".\";\n\twidth: 1.25rem;\n\tdisplay: inline-block;\n\tposition: absolute;\n\tmargin-inline-start: -1.75rem;\n\ttext-align: end;\n}\n\n[mol_text_list_type=\"-\"] > [mol_text_list_item]::before,\n[mol_text_list_type=\"*\"] > [mol_text_list_item]::before {\n\tcontent: \"•\";\n}\n");
+})($ || ($ = {}));
+
+;
+"use strict";
+
+
+;
+	($.$bog_pazzle_board) = class $bog_pazzle_board extends ($.$mol_view) {
+		Placeholder(){
+			const obj = new this.$.$mol_text();
+			(obj.text) = () => ("Выберите картинку — здесь появится предпросмотр.");
+			return obj;
+		}
+		field_width(){
+			return "";
+		}
+		grid_columns(){
+			return "";
+		}
+		grid_rows(){
+			return "";
+		}
+		grid_ratio(){
+			return "";
+		}
+		merged(){
+			return false;
+		}
+		tiles(){
+			return [];
+		}
+		Grid(){
+			const obj = new this.$.$mol_view();
+			(obj.style) = () => ({
+				"gridTemplateColumns": (this.grid_columns()), 
+				"gridTemplateRows": (this.grid_rows()), 
+				"aspectRatio": (this.grid_ratio())
+			});
+			(obj.attr) = () => ({"bog_pazzle_assembled": (this.merged())});
+			(obj.sub) = () => ((this.tiles()));
+			return obj;
+		}
+		Peek(){
+			const obj = new this.$.$mol_image();
+			(obj.uri) = () => ((this.image_uri()));
+			(obj.title) = () => ("Оригинал");
+			return obj;
+		}
+		Victory(){
+			const obj = new this.$.$bog_pazzle_board_victory();
+			(obj.moves) = () => ((this.moves()));
+			(obj.time) = () => ((this.time()));
+			(obj.best) = () => ((this.best()));
+			(obj.again) = (next) => ((this.again(next)));
+			(obj.home) = (next) => ((this.home(next)));
+			(obj.saves) = (next) => ((this.saves(next)));
+			return obj;
+		}
+		field_content(){
+			return [
+				(this.Grid()), 
+				(this.Peek()), 
+				(this.Victory())
+			];
+		}
+		Field(){
+			const obj = new this.$.$mol_view();
+			(obj.style) = () => ({"maxWidth": (this.field_width())});
+			(obj.sub) = () => ((this.field_content()));
+			return obj;
+		}
+		board_content(){
+			return [(this.Placeholder()), (this.Field())];
+		}
+		tile_locked(id){
+			return false;
+		}
+		tile_piece(id){
+			return 0;
+		}
+		tile_slot(id){
+			return 0;
+		}
+		tile_label(id){
+			return "";
+		}
+		tile_selected(id){
+			return false;
+		}
+		tile_synced(id){
+			return [];
+		}
+		tile_press(id, next){
+			if(next !== undefined) return next;
+			return null;
+		}
+		tile_drag(id, next){
+			if(next !== undefined) return next;
+			return null;
+		}
+		tile_drop(id, next){
+			if(next !== undefined) return next;
+			return null;
+		}
+		image_uri(){
+			return "";
+		}
+		rows(){
+			return 1;
+		}
+		columns(){
+			return 1;
+		}
+		numbers(){
+			return false;
+		}
+		playable(){
+			return false;
+		}
+		peek(){
+			return false;
+		}
+		order(){
+			return [];
+		}
+		moves(){
+			return 0;
+		}
+		time(){
+			return "";
+		}
+		best(){
+			return "";
+		}
+		apply(next){
+			if(next !== undefined) return next;
+			return null;
+		}
+		again(next){
+			if(next !== undefined) return next;
+			return null;
+		}
+		home(next){
+			if(next !== undefined) return next;
+			return null;
+		}
+		saves(next){
+			if(next !== undefined) return next;
+			return null;
+		}
+		sub(){
+			return (this.board_content());
+		}
+		Tile(id){
+			const obj = new this.$.$bog_pazzle_board_tile();
+			(obj.rows) = () => ((this.rows()));
+			(obj.columns) = () => ((this.columns()));
+			(obj.image_uri) = () => ((this.image_uri()));
+			(obj.playable) = () => ((this.playable()));
+			(obj.locked) = () => ((this.tile_locked(id)));
+			(obj.piece) = () => ((this.tile_piece(id)));
+			(obj.slot) = () => ((this.tile_slot(id)));
+			(obj.label) = () => ((this.tile_label(id)));
+			(obj.selected) = () => ((this.tile_selected(id)));
+			(obj.drags_synced) = () => ((this.tile_synced(id)));
+			(obj.on_drag_start) = (next) => ((this.tile_press(id, next)));
+			(obj.on_drag) = (next) => ((this.tile_drag(id, next)));
+			(obj.on_drag_end) = (next) => ((this.tile_drop(id, next)));
+			return obj;
+		}
+	};
+	($mol_mem(($.$bog_pazzle_board.prototype), "Placeholder"));
+	($mol_mem(($.$bog_pazzle_board.prototype), "Grid"));
+	($mol_mem(($.$bog_pazzle_board.prototype), "Peek"));
+	($mol_mem(($.$bog_pazzle_board.prototype), "Victory"));
+	($mol_mem(($.$bog_pazzle_board.prototype), "Field"));
+	($mol_mem_key(($.$bog_pazzle_board.prototype), "tile_press"));
+	($mol_mem_key(($.$bog_pazzle_board.prototype), "tile_drag"));
+	($mol_mem_key(($.$bog_pazzle_board.prototype), "tile_drop"));
+	($mol_mem(($.$bog_pazzle_board.prototype), "apply"));
+	($mol_mem(($.$bog_pazzle_board.prototype), "again"));
+	($mol_mem(($.$bog_pazzle_board.prototype), "home"));
+	($mol_mem(($.$bog_pazzle_board.prototype), "saves"));
+	($mol_mem_key(($.$bog_pazzle_board.prototype), "Tile"));
+
+
+;
+"use strict";
+
+
+;
+"use strict";
+var $;
+(function ($) {
+    var $$;
+    (function ($$) {
+        class $bog_pazzle_board extends $.$bog_pazzle_board {
+            board_content() {
+                return this.image_uri() ? [this.Field()] : [this.Placeholder()];
+            }
+            field_content() {
+                const parts = [this.Grid()];
+                if (this.peek())
+                    parts.push(this.Peek());
+                if (this.merged())
+                    parts.push(this.Victory());
+                return parts;
+            }
+            tiles() {
+                return this.order().map((piece, slot) => this.Tile(slot));
+            }
+            // ——— геометрия ———
+            grid_w() { return Math.max(1, this.columns()); }
+            grid_h() { return Math.max(1, this.rows()); }
+            slot_row(slot) { return Math.floor(slot / this.grid_w()); }
+            slot_col(slot) { return slot % this.grid_w(); }
+            grid_columns() { return 'repeat(' + this.grid_w() + ', 1fr)'; }
+            grid_rows() { return 'repeat(' + this.grid_h() + ', 1fr)'; }
+            grid_ratio() {
+                const size = this.image_size();
+                return size ? size.width + ' / ' + size.height : '';
+            }
+            image_size() {
+                const uri = this.image_uri();
+                if (!uri)
+                    return null;
+                return this.$.$mol_wire_sync(this).image_load(uri);
+            }
+            async image_load(uri) {
+                const image = new this.$.$mol_dom_context.Image();
+                image.src = uri;
+                await image.decode();
+                return { width: image.naturalWidth, height: image.naturalHeight };
+            }
+            // ——— фрагменты ———
+            tile_slot(slot) { return slot; }
+            tile_piece(slot) {
+                return this.order()[slot] ?? slot;
+            }
+            tile_label(slot) {
+                return this.numbers() ? String(this.tile_piece(slot) + 1) : '';
+            }
+            tile_selected(slot) {
+                if (this.drop_slots()?.includes(slot))
+                    return true;
+                if (this.drag_slots()?.includes(slot))
+                    return true;
+                return this.picked() === slot;
+            }
+            /** Уже сложенные соседи едут вместе — их drag-плагины цепляем к ведущему. */
+            tile_synced(slot) {
+                if (!this.playable())
+                    return [];
+                return this.group(slot)
+                    .filter(member => member !== slot)
+                    .map(member => this.Tile(member).Drag());
+            }
+            assembled() {
+                return this.$.$bog_pazzle_store.assembled(this.order());
+            }
+            /** Пазл сложен — швы смыкаются. В предпросмотре сетку, наоборот, показываем. */
+            merged() {
+                return this.playable() && this.assembled();
+            }
+            /** Высокая картинка иначе выпихивает доску за нижний край экрана. */
+            field_width() {
+                const size = this.image_size();
+                if (!size || size.width >= size.height)
+                    return '';
+                return Math.round(70 * size.width / size.height) + 'vh';
+            }
+            // ——— группы сложенных фрагментов ———
+            neighbors(slot) {
+                const near = [];
+                const columns = this.grid_w();
+                const row = this.slot_row(slot);
+                const col = this.slot_col(slot);
+                if (col > 0)
+                    near.push(slot - 1);
+                if (col + 1 < columns)
+                    near.push(slot + 1);
+                if (row > 0)
+                    near.push(slot - columns);
+                if (row + 1 < this.grid_h())
+                    near.push(slot + columns);
+                return near;
+            }
+            /** Соседние клетки держат соседние куски картинки — значит, они уже склеены. */
+            aligned(from, to, order) {
+                const shift_row = this.slot_row(to) - this.slot_row(from);
+                const shift_col = this.slot_col(to) - this.slot_col(from);
+                if (Math.abs(shift_row) + Math.abs(shift_col) !== 1)
+                    return false;
+                const piece_from = order[from];
+                const piece_to = order[to];
+                if (piece_from === undefined || piece_to === undefined)
+                    return false;
+                const columns = this.grid_w();
+                return Math.floor(piece_to / columns) - Math.floor(piece_from / columns) === shift_row
+                    && piece_to % columns - piece_from % columns === shift_col;
+            }
+            groups() {
+                const order = this.order();
+                const groups = new Map();
+                const seen = new Set();
+                for (let slot = 0; slot < order.length; slot++) {
+                    if (seen.has(slot))
+                        continue;
+                    const group = [];
+                    const stack = [slot];
+                    while (stack.length) {
+                        const current = stack.pop();
+                        if (seen.has(current))
+                            continue;
+                        seen.add(current);
+                        group.push(current);
+                        for (const near of this.neighbors(current)) {
+                            if (!seen.has(near) && this.aligned(current, near, order))
+                                stack.push(near);
+                        }
+                    }
+                    const frozen = Object.freeze(group.sort((a, b) => a - b));
+                    for (const member of frozen)
+                        groups.set(member, frozen);
+                }
+                return groups;
+            }
+            group(slot) {
+                return this.groups().get(slot) ?? [slot];
+            }
+            /** Кусок, стоящий на своём месте, больше не двигаем — он уже дома. */
+            tile_locked(slot) {
+                const order = this.order();
+                return this.group(slot).every(member => order[member] === member);
+            }
+            // ——— состояние перетаскивания ———
+            /** Смена картинки или сетки обесценивает всё выделенное. */
+            reset_key() {
+                return this.image_uri() + '|' + this.rows() + '|' + this.columns();
+            }
+            selection_blank() {
+                return { key: '', picked: null, from: null, drag: null, drop: null };
+            }
+            /**
+             * Ячейка, в которую пишут: после записи её зависимости замерзают,
+             * поэтому ключ пазла кладём внутрь значения, а не читаем рядом.
+             */
+            selection_raw(next) {
+                if (next !== undefined)
+                    return next;
+                return this.selection_blank();
+            }
+            /** Чтение сверяет ключ вживую — выделение от прошлого пазла не всплывёт. */
+            selection() {
+                const state = this.selection_raw();
+                return state.key === this.reset_key() ? state : this.selection_blank();
+            }
+            select(patch) {
+                this.selection_raw({ ...this.selection(), ...patch, key: this.reset_key() });
+            }
+            picked() { return this.selection().picked; }
+            drag_from() { return this.selection().from; }
+            drag_slots() { return this.selection().drag; }
+            drop_slots() { return this.selection().drop; }
+            drag_reset() {
+                this.select({ from: null, drag: null, drop: null });
+            }
+            /** Возвращает все фрагменты на свои клетки после перетаскивания. */
+            tiles_home() {
+                for (let slot = 0; slot < this.order().length; slot++) {
+                    const tile = this.Tile(slot);
+                    tile.x(0);
+                    tile.y(0);
+                }
+            }
+            slot_at(x, y) {
+                const document = this.$.$mol_dom_context.document;
+                const element = document.elementFromPoint(x, y);
+                const tile = element?.closest?.('[data-pazzle-slot]');
+                if (tile) {
+                    const slot = Number(tile.getAttribute('data-pazzle-slot'));
+                    if (Number.isFinite(slot))
+                        return slot;
+                }
+                const grid = this.Grid().dom_node();
+                if (!grid)
+                    return null;
+                const rect = grid.getBoundingClientRect();
+                if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom)
+                    return null;
+                const columns = this.grid_w();
+                const rows = this.grid_h();
+                const col = Math.min(columns - 1, Math.max(0, Math.floor((x - rect.left) / (rect.width / columns))));
+                const row = Math.min(rows - 1, Math.max(0, Math.floor((y - rect.top) / (rect.height / rows))));
+                return row * columns + col;
+            }
+            // ——— ходы ———
+            tile_press(slot, next) {
+                if (!this.playable() || this.tile_locked(slot)) {
+                    this.drag_reset();
+                    return null;
+                }
+                const group = this.group(slot);
+                this.select({ from: slot, drag: group, drop: group });
+                return null;
+            }
+            tile_drag(slot, next) {
+                const from = this.drag_from();
+                if (from === null || slot !== from || !next)
+                    return null;
+                const group = this.drag_slots() ?? [from];
+                const over = this.slot_at(next.clientX, next.clientY);
+                if (over === null) {
+                    this.select({ drop: group });
+                    return null;
+                }
+                const shift_row = this.slot_row(over) - this.slot_row(from);
+                const shift_col = this.slot_col(over) - this.slot_col(from);
+                this.select({ drop: this.shifted(group, shift_row, shift_col) ?? group });
+                return null;
+            }
+            tile_drop(slot, next) {
+                const from = this.drag_from();
+                if (from === null || slot !== from) {
+                    this.tiles_home();
+                    return null;
+                }
+                const group = this.drag_slots() ?? [from];
+                const dest = this.drop_slots();
+                const moved = !!dest && dest.length === group.length && !this.same(group, dest);
+                // перетаскивание отменяет выбор тапом, а тап по той же клетке — наоборот, его продолжает
+                this.select(moved ? { from: null, drag: null, drop: null, picked: null } : { from: null, drag: null, drop: null });
+                this.tiles_home();
+                if (moved) {
+                    const order = this.shift_order(group, dest);
+                    if (order)
+                        this.commit(order);
+                }
+                else {
+                    this.pick(from);
+                }
+                return null;
+            }
+            /** Тап без перетаскивания: первый выбирает фрагмент, второй меняет их местами. */
+            pick(slot) {
+                if (!this.playable())
+                    return;
+                if (this.tile_locked(slot)) {
+                    this.select({ picked: null });
+                    return;
+                }
+                const current = this.picked();
+                if (current === null) {
+                    this.select({ picked: slot });
+                    return;
+                }
+                if (current === slot || this.tile_locked(current)) {
+                    this.select({ picked: null });
+                    return;
+                }
+                const order = [...this.order()];
+                [order[current], order[slot]] = [order[slot], order[current]];
+                this.select({ picked: null });
+                this.commit(order);
+            }
+            commit(order) {
+                this.apply({ order, moves: this.moves() + 1 });
+            }
+            /** Куда уедет группа при сдвиге на столько строк и столбцов. null — за край доски. */
+            shifted(group, shift_row, shift_col) {
+                const columns = this.grid_w();
+                const rows = this.grid_h();
+                const dest = [];
+                const seen = new Set();
+                for (const slot of group) {
+                    const row = this.slot_row(slot) + shift_row;
+                    const col = this.slot_col(slot) + shift_col;
+                    if (row < 0 || row >= rows || col < 0 || col >= columns)
+                        return null;
+                    const target = row * columns + col;
+                    if (seen.has(target))
+                        return null;
+                    seen.add(target);
+                    dest.push(target);
+                }
+                return dest;
+            }
+            same(a, b) {
+                return a.length === b.length && a.every((value, index) => value === b[index]);
+            }
+            /** Группа встаёт на новые клетки, вытесненные фрагменты занимают освободившиеся. */
+            shift_order(group, dest) {
+                const order = this.order();
+                const next = [...order];
+                const from_set = new Set(group);
+                const to_set = new Set(dest);
+                const evicted = [];
+                const vacant = [];
+                for (let index = 0; index < group.length; index++) {
+                    const from = group[index];
+                    const to = dest[index];
+                    if (!from_set.has(to))
+                        evicted.push(order[to]);
+                    if (!to_set.has(from))
+                        vacant.push(from);
+                    next[to] = order[from];
+                }
+                if (evicted.length !== vacant.length)
+                    return null;
+                for (let index = 0; index < vacant.length; index++) {
+                    next[vacant[index]] = evicted[index];
+                }
+                return next;
+            }
+        }
+        __decorate([
+            $mol_mem
+        ], $bog_pazzle_board.prototype, "board_content", null);
+        __decorate([
+            $mol_mem
+        ], $bog_pazzle_board.prototype, "field_content", null);
+        __decorate([
+            $mol_mem
+        ], $bog_pazzle_board.prototype, "tiles", null);
+        __decorate([
+            $mol_mem
+        ], $bog_pazzle_board.prototype, "grid_ratio", null);
+        __decorate([
+            $mol_mem
+        ], $bog_pazzle_board.prototype, "image_size", null);
+        __decorate([
+            $mol_mem_key
+        ], $bog_pazzle_board.prototype, "tile_synced", null);
+        __decorate([
+            $mol_mem
+        ], $bog_pazzle_board.prototype, "assembled", null);
+        __decorate([
+            $mol_mem
+        ], $bog_pazzle_board.prototype, "merged", null);
+        __decorate([
+            $mol_mem
+        ], $bog_pazzle_board.prototype, "field_width", null);
+        __decorate([
+            $mol_mem
+        ], $bog_pazzle_board.prototype, "groups", null);
+        __decorate([
+            $mol_mem
+        ], $bog_pazzle_board.prototype, "selection_raw", null);
+        __decorate([
+            $mol_action
+        ], $bog_pazzle_board.prototype, "tile_press", null);
+        __decorate([
+            $mol_action
+        ], $bog_pazzle_board.prototype, "tile_drag", null);
+        __decorate([
+            $mol_action
+        ], $bog_pazzle_board.prototype, "tile_drop", null);
+        __decorate([
+            $mol_action
+        ], $bog_pazzle_board.prototype, "pick", null);
+        $$.$bog_pazzle_board = $bog_pazzle_board;
+    })($$ = $.$$ || ($.$$ = {}));
+})($ || ($ = {}));
+
+;
+"use strict";
+var $;
+(function ($) {
+    var $$;
+    (function ($$) {
+        const { rem } = $mol_style_unit;
+        $mol_style_define($bog_pazzle_board, {
+            display: 'flex',
+            flexDirection: 'column',
+            gap: $mol_gap.block,
+            minWidth: 0,
+            Placeholder: {
+                color: $mol_theme.shade,
+                textAlign: 'center',
+                padding: $mol_gap.block,
+            },
+            Field: {
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column',
+                alignSelf: 'center',
+                width: '100%',
+                minWidth: 0,
+            },
+            Grid: {
+                display: 'grid',
+                gap: rem(.25),
+                width: '100%',
+                background: { color: $mol_theme.field },
+                boxShadow: `0 0 0 1px ${$mol_theme.line}`,
+                transition: 'gap .35s ease',
+                touchAction: 'none',
+            },
+            Peek: {
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'fill',
+                border: { radius: $mol_gap.round },
+                zIndex: 15,
+                pointerEvents: 'none',
+                boxShadow: `0 0 0 2px ${$mol_theme.focus}`,
+            },
+        });
+        // собранный пазл смыкается в цельную картинку
+        $mol_style_attach('bog_pazzle_board_assembled', `
+		[bog_pazzle_assembled="true"] {
+			gap: 0 !important;
+		}
+		[bog_pazzle_assembled="true"] [bog_pazzle_board_tile] {
+			box-shadow: none !important;
+		}
+	`);
+    })($$ = $.$$ || ($.$$ = {}));
+})($ || ($ = {}));
+
+;
+	($.$mol_labeler) = class $mol_labeler extends ($.$mol_list) {
+		label(){
+			return [(this.title())];
+		}
+		Label(){
+			const obj = new this.$.$mol_view();
+			(obj.minimal_height) = () => (32);
+			(obj.sub) = () => ((this.label()));
+			return obj;
+		}
+		content(){
+			return [];
+		}
+		Content(){
+			const obj = new this.$.$mol_view();
+			(obj.minimal_height) = () => (24);
+			(obj.sub) = () => ((this.content()));
+			return obj;
+		}
+		rows(){
+			return [(this.Label()), (this.Content())];
+		}
+	};
+	($mol_mem(($.$mol_labeler.prototype), "Label"));
+	($mol_mem(($.$mol_labeler.prototype), "Content"));
+
+
+;
+"use strict";
+var $;
+(function ($) {
+    $mol_style_attach("mol/labeler/labeler.view.css", "[mol_labeler] {\n\tdisplay: flex;\n\tflex-direction: column;\n\talign-items: stretch;\n\tcursor: inherit;\n}\n\n[mol_labeler_label] {\n\tmin-height: 2rem;\n\tcolor: var(--mol_theme_shade);\n\tpadding: 0;\n\tpadding-top: .5rem;\n\tpadding-inline: .75rem;\n\tgap: 0 var(--mol_gap_block);\n\tflex-wrap: wrap;\n}\n\n[mol_labeler_content] {\n\tdisplay: flex;\n\tpadding: var(--mol_gap_text);\n\tmin-height: 2.5rem;\n}\n");
+})($ || ($ = {}));
+
+;
+"use strict";
+
+
+;
+	($.$mol_icon_upload) = class $mol_icon_upload extends ($.$mol_icon) {
+		path(){
+			return "M9,16V10H5L12,3L19,10H15V16H9M5,20V18H19V20H5Z";
+		}
+	};
+
+
+;
+"use strict";
+
+
+;
+	($.$mol_button_open) = class $mol_button_open extends ($.$mol_button_minor) {
+		Icon(){
+			const obj = new this.$.$mol_icon_upload();
+			return obj;
+		}
+		files(next){
+			if(next !== undefined) return next;
+			return [];
+		}
+		files_handled(next){
+			return (this.files(next));
+		}
+		accept(){
+			return "";
+		}
+		multiple(){
+			return true;
+		}
+		Native(){
+			const obj = new this.$.$mol_button_open_native();
+			(obj.files) = (next) => ((this.files_handled(next)));
+			(obj.accept) = () => ((this.accept()));
+			(obj.multiple) = () => ((this.multiple()));
+			return obj;
+		}
+		sub(){
+			return [(this.Icon()), (this.Native())];
+		}
+	};
+	($mol_mem(($.$mol_button_open.prototype), "Icon"));
+	($mol_mem(($.$mol_button_open.prototype), "files"));
+	($mol_mem(($.$mol_button_open.prototype), "Native"));
+	($.$mol_button_open_native) = class $mol_button_open_native extends ($.$mol_view) {
+		accept(){
+			return "";
+		}
+		multiple(){
+			return true;
+		}
+		picked(next){
+			if(next !== undefined) return next;
+			return null;
+		}
+		dom_name(){
+			return "input";
+		}
+		files(next){
+			if(next !== undefined) return next;
+			return [];
+		}
+		attr(){
+			return {
+				"type": "file", 
+				"accept": (this.accept()), 
+				"multiple": (this.multiple())
+			};
+		}
+		event(){
+			return {"change": (next) => (this.picked(next))};
+		}
+	};
+	($mol_mem(($.$mol_button_open_native.prototype), "picked"));
+	($mol_mem(($.$mol_button_open_native.prototype), "files"));
+
+
+;
+"use strict";
+
+
+;
+"use strict";
+var $;
+(function ($) {
+    var $$;
+    (function ($$) {
+        class $mol_button_open extends $.$mol_button_open {
+            files_handled(next) {
+                try {
+                    const files = this.files(next);
+                    this.status([null]);
+                    return files;
+                }
+                catch (error) {
+                    // Calling actions from catch section, if throwing promise breaks idempotency
+                    Promise.resolve().then(() => this.status([error]));
+                    $mol_fail_hidden(error);
+                }
+            }
+        }
+        $$.$mol_button_open = $mol_button_open;
+        /**
+         * File open button
+         * @see https://mol.hyoo.ru/#!section=demos/demo=mol_button_demo
+         */
+        class $mol_button_open_native extends $.$mol_button_open_native {
+            dom_node() {
+                return super.dom_node();
+            }
+            picked() {
+                const files = this.dom_node().files;
+                if (!files || !files.length)
+                    return;
+                this.files([...files]);
+            }
+        }
+        $$.$mol_button_open_native = $mol_button_open_native;
+    })($$ = $.$$ || ($.$$ = {}));
+})($ || ($ = {}));
+
+;
+"use strict";
+var $;
+(function ($) {
+    $mol_style_attach("mol/button/open/open.view.css", "[mol_button_open_native] {\n\tposition: absolute;\n\tleft: 0;\n\ttop: -100%;\n\twidth: 100%;\n\theight: 200%;\n\tcursor: pointer;\n\topacity: 0;\n}\n");
+})($ || ($ = {}));
+
+;
+	($.$bog_pazzle_upload_image) = class $bog_pazzle_upload_image extends ($.$mol_button_open) {
+		Icon(){
+			const obj = new this.$.$mol_icon_image_plus();
+			return obj;
+		}
+		Preview(){
+			const obj = new this.$.$mol_image();
+			(obj.uri) = () => ((this.image_uri()));
+			(obj.title) = () => ("Выбранная картинка");
+			return obj;
+		}
+		hint(){
+			return "Выбрать картинку";
+		}
+		image_uri(){
+			return "";
+		}
+		picked(next){
+			if(next !== undefined) return next;
+			return null;
+		}
+		accept(){
+			return "image/*";
+		}
+		multiple(){
+			return false;
+		}
+		sub(){
+			return [
+				(this.Icon()), 
+				(this.Preview()), 
+				(this.Native())
+			];
+		}
+	};
+	($mol_mem(($.$bog_pazzle_upload_image.prototype), "Icon"));
+	($mol_mem(($.$bog_pazzle_upload_image.prototype), "Preview"));
+	($mol_mem(($.$bog_pazzle_upload_image.prototype), "picked"));
+
+
+;
+"use strict";
+
+
+;
+"use strict";
+var $;
+(function ($) {
+    var $$;
+    (function ($$) {
+        class $bog_pazzle_upload_image extends $.$bog_pazzle_upload_image {
+            sub() {
+                return [this.image_uri() ? this.Preview() : this.Icon(), this.Native()];
+            }
+            files(next) {
+                if (next?.length)
+                    this.picked(next[0]);
+                return [];
+            }
+        }
+        __decorate([
+            $mol_mem
+        ], $bog_pazzle_upload_image.prototype, "sub", null);
+        __decorate([
+            $mol_action
+        ], $bog_pazzle_upload_image.prototype, "files", null);
+        $$.$bog_pazzle_upload_image = $bog_pazzle_upload_image;
+    })($$ = $.$$ || ($.$$ = {}));
+})($ || ($ = {}));
+
+;
+"use strict";
+var $;
+(function ($) {
+    var $$;
+    (function ($$) {
+        const { rem } = $mol_style_unit;
+        $mol_style_define($bog_pazzle_upload_image, {
+            width: rem(12),
+            height: rem(12),
+            padding: 0,
+            border: { radius: $mol_gap.round },
+            background: { color: $mol_theme.field },
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            position: 'relative',
+            overflow: 'hidden',
+            Preview: {
+                width: '100%',
+                height: '100%',
+                maxWidth: '100%',
+                objectFit: 'cover',
+            },
+            Icon: {
+                width: rem(3),
+                height: rem(3),
+                color: $mol_theme.shade,
+            },
+            Native: {
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                opacity: 0,
+                cursor: 'pointer',
+            },
+        });
+    })($$ = $.$$ || ($.$$ = {}));
 })($ || ($ = {}));
 
 ;
@@ -11300,6 +13716,7 @@ var $;
 ;
 "use strict";
 
+
 ;
 	($.$mol_icon_chevron_right) = class $mol_icon_chevron_right extends ($.$mol_icon) {
 		path(){
@@ -11310,6 +13727,7 @@ var $;
 
 ;
 "use strict";
+
 
 ;
 	($.$mol_number) = class $mol_number extends ($.$mol_view) {
@@ -11455,12 +13873,17 @@ var $;
 ;
 "use strict";
 
+
 ;
 "use strict";
 var $;
 (function ($) {
     var $$;
     (function ($$) {
+        /**
+         * Component for entering, incrementing and decrementing numeric values.
+         * @see https://mol.hyoo.ru/#!section=demos/demo=mol_number_demo
+         */
         class $mol_number extends $.$mol_number {
             value_limited(val) {
                 if (Number.isNaN(val))
@@ -11510,30 +13933,43 @@ var $;
                 }
             }
             value_string(next) {
+                // Вытягиваем value
+                // Если кто-то поменяет из вне value, value_string надо обновить
                 const current = this.round(this.value_limited());
                 if (next === undefined)
                     return current;
                 const precision = this.precision_view();
+                // Точку в конце поставить нельзя, если precision_view целое число > 0
                 if (precision - Math.floor(precision) === 0)
                     next = next.replace(/[.,]/g, '');
+                // Запятые меняем на точки, удаляем не-цифры и не-точки и лишние ноли в начале целой части.
+                // Минус получится ввести только в начале.
                 next = (this.value_min() < 0 && next.startsWith('-') ? '-' : '')
                     + next.replace(/,/g, '.').replace(/[^\d\.]/g, '').replace(/^0{2,}/, '0');
                 let dot_pos = next.indexOf('.');
                 if (dot_pos !== -1) {
                     const prev = $mol_wire_probe(() => this.value_string()) ?? '';
                     const dot_pos_prev = prev.indexOf('.');
+                    // Определяем где относительно предыдущей точки юзер поставил новую
                     if (dot_pos_prev === dot_pos)
                         dot_pos = next.lastIndexOf('.');
+                    // Из частей до и после новой точки старую точку удаляем
                     const frac = next.slice(dot_pos + 1).replace(/\./g, '');
+                    // Если точка идет первой, перед ней пишем 0, что бы форматирование выглядело нормально в mask
                     next = (next.slice(0, dot_pos) || '0').replace(/\./g, '') + '.' + frac;
                 }
+                // Оставляем старое значение в value есть сочетание, приводящие к NaN, например -.
                 if (Number.isNaN(Number(next)))
                     return next;
                 if (next.endsWith('.'))
                     return next;
                 if (next.endsWith('-'))
                     return next;
+                // Если пустая строка - сетим NaN
+                // Применяем округления.
                 this.value_limited(Number(next || Number.NaN));
+                // Возвращаем все-равно не нормализованное значение
+                // Иначе нельзя ввести будет 10, если min/max 5..10
                 return next;
             }
             dec_enabled() {
@@ -11557,136 +13993,144 @@ var $;
 })($ || ($ = {}));
 
 ;
-	($.$mol_labeler) = class $mol_labeler extends ($.$mol_list) {
-		label(){
-			return [(this.title())];
-		}
-		Label(){
-			const obj = new this.$.$mol_view();
-			(obj.minimal_height) = () => (32);
-			(obj.sub) = () => ((this.label()));
-			return obj;
-		}
-		content(){
-			return [];
-		}
-		Content(){
-			const obj = new this.$.$mol_view();
-			(obj.minimal_height) = () => (24);
-			(obj.sub) = () => ((this.content()));
-			return obj;
-		}
-		rows(){
-			return [(this.Label()), (this.Content())];
+	($.$mol_icon_tick) = class $mol_icon_tick extends ($.$mol_icon) {
+		path(){
+			return "M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z";
 		}
 	};
-	($mol_mem(($.$mol_labeler.prototype), "Label"));
-	($mol_mem(($.$mol_labeler.prototype), "Content"));
+
+
+;
+"use strict";
+
+
+;
+	($.$mol_check_box) = class $mol_check_box extends ($.$mol_check) {
+		Icon(){
+			const obj = new this.$.$mol_icon_tick();
+			return obj;
+		}
+	};
+	($mol_mem(($.$mol_check_box.prototype), "Icon"));
 
 
 ;
 "use strict";
 var $;
 (function ($) {
-    $mol_style_attach("mol/labeler/labeler.view.css", "[mol_labeler] {\n\tdisplay: flex;\n\tflex-direction: column;\n\talign-items: stretch;\n\tcursor: inherit;\n}\n\n[mol_labeler_label] {\n\tmin-height: 2rem;\n\tcolor: var(--mol_theme_shade);\n\tpadding: .5rem .75rem 0;\n\tgap: 0 var(--mol_gap_block);\n\tflex-wrap: wrap;\n}\n\n[mol_labeler_content] {\n\tdisplay: flex;\n\tpadding: var(--mol_gap_text);\n\tmin-height: 2.5rem;\n}\n");
+    $mol_style_attach("mol/check/box/box.view.css", "[mol_check_box_icon] {\n\tborder-radius: var(--mol_gap_round);\n\tbox-shadow: inset 0 0 0 1px var(--mol_theme_line);\n\tcolor: var(--mol_theme_shade);\n\theight: 1rem;\n\talign-self: center;\n}\n\n[mol_check]:not([mol_check_checked]) > [mol_check_box_icon] {\n\tfill: transparent;\n}\n\n[mol_check]:not([disabled]) > [mol_check_box_icon] {\n\tbackground: var(--mol_theme_field);\n\tcolor: var(--mol_theme_text);\n}\n");
 })($ || ($ = {}));
 
 ;
 "use strict";
 
+
 ;
 	($.$bog_pazzle_settings) = class $bog_pazzle_settings extends ($.$mol_list) {
-		Rows_label(){
-			const obj = new this.$.$mol_text();
-			(obj.text) = () => ("Строки");
-			return obj;
+		preset_title(id){
+			return "";
 		}
-		rows_count(next){
+		preset_pick(id, next){
 			if(next !== undefined) return next;
-			return 4;
+			return null;
+		}
+		preset_current(id){
+			return false;
 		}
 		Rows_input(){
 			const obj = new this.$.$mol_number();
 			(obj.value_min) = () => (2);
-			(obj.value_max) = () => (20);
-			(obj.value) = (next) => ((this.rows_count(next)));
-			(obj.hint) = () => ("Количество строк");
+			(obj.value_max) = () => (12);
+			(obj.value) = (next) => ((this.grid_rows(next)));
+			(obj.hint) = () => ("строк");
 			return obj;
 		}
-		Rows_labeler(){
-			const obj = new this.$.$mol_labeler();
-			(obj.Label) = () => ((this.Rows_label()));
-			(obj.Content) = () => ((this.Rows_input()));
-			return obj;
-		}
-		Columns_label(){
+		Times(){
 			const obj = new this.$.$mol_text();
-			(obj.text) = () => ("Столбцы");
+			(obj.text) = () => ("×");
 			return obj;
-		}
-		columns_count(next){
-			if(next !== undefined) return next;
-			return 4;
 		}
 		Columns_input(){
 			const obj = new this.$.$mol_number();
 			(obj.value_min) = () => (2);
-			(obj.value_max) = () => (20);
-			(obj.value) = (next) => ((this.columns_count(next)));
-			(obj.hint) = () => ("Количество столбцов");
+			(obj.value_max) = () => (12);
+			(obj.value) = (next) => ((this.grid_columns(next)));
+			(obj.hint) = () => ("столбцов");
 			return obj;
 		}
-		Columns_labeler(){
+		Size_row(){
+			const obj = new this.$.$mol_view();
+			(obj.sub) = () => ([
+				(this.Rows_input()), 
+				(this.Times()), 
+				(this.Columns_input())
+			]);
+			return obj;
+		}
+		Size(){
 			const obj = new this.$.$mol_labeler();
-			(obj.Label) = () => ((this.Columns_label()));
-			(obj.Content) = () => ((this.Columns_input()));
+			(obj.title) = () => ("Размер сетки");
+			(obj.content) = () => ([(this.Size_row())]);
 			return obj;
 		}
-		shuffle_enabled(next){
-			if(next !== undefined) return next;
-			return true;
+		presets(){
+			return [];
 		}
-		Shuffle(){
-			const obj = new this.$.$mol_check();
-			(obj.title) = () => ("Перемешать автоматически");
-			(obj.checked) = (next) => ((this.shuffle_enabled(next)));
+		Presets(){
+			const obj = new this.$.$mol_view();
+			(obj.sub) = () => ((this.presets()));
 			return obj;
 		}
-		show_numbers(next){
-			if(next !== undefined) return next;
-			return true;
-		}
-		Show_numbers(){
-			const obj = new this.$.$mol_check();
+		Numbers(){
+			const obj = new this.$.$mol_check_box();
 			(obj.title) = () => ("Показывать номера фрагментов");
-			(obj.checked) = (next) => ((this.show_numbers(next)));
+			(obj.checked) = (next) => ((this.numbers(next)));
+			return obj;
+		}
+		grid_rows(next){
+			if(next !== undefined) return next;
+			return 4;
+		}
+		grid_columns(next){
+			if(next !== undefined) return next;
+			return 4;
+		}
+		numbers(next){
+			if(next !== undefined) return next;
+			return true;
+		}
+		Preset(id){
+			const obj = new this.$.$mol_button_minor();
+			(obj.title) = () => ((this.preset_title(id)));
+			(obj.click) = (next) => ((this.preset_pick(id, next)));
+			(obj.attr) = () => ({...(this.$.$mol_button_minor.prototype.attr.call(obj)), "bog_pazzle_current": (this.preset_current(id))});
 			return obj;
 		}
 		rows(){
 			return [
-				(this.Rows_labeler()), 
-				(this.Columns_labeler()), 
-				(this.Shuffle()), 
-				(this.Show_numbers())
+				(this.Size()), 
+				(this.Presets()), 
+				(this.Numbers())
 			];
 		}
 	};
-	($mol_mem(($.$bog_pazzle_settings.prototype), "Rows_label"));
-	($mol_mem(($.$bog_pazzle_settings.prototype), "rows_count"));
+	($mol_mem_key(($.$bog_pazzle_settings.prototype), "preset_pick"));
 	($mol_mem(($.$bog_pazzle_settings.prototype), "Rows_input"));
-	($mol_mem(($.$bog_pazzle_settings.prototype), "Rows_labeler"));
-	($mol_mem(($.$bog_pazzle_settings.prototype), "Columns_label"));
-	($mol_mem(($.$bog_pazzle_settings.prototype), "columns_count"));
+	($mol_mem(($.$bog_pazzle_settings.prototype), "Times"));
 	($mol_mem(($.$bog_pazzle_settings.prototype), "Columns_input"));
-	($mol_mem(($.$bog_pazzle_settings.prototype), "Columns_labeler"));
-	($mol_mem(($.$bog_pazzle_settings.prototype), "shuffle_enabled"));
-	($mol_mem(($.$bog_pazzle_settings.prototype), "Shuffle"));
-	($mol_mem(($.$bog_pazzle_settings.prototype), "show_numbers"));
-	($mol_mem(($.$bog_pazzle_settings.prototype), "Show_numbers"));
+	($mol_mem(($.$bog_pazzle_settings.prototype), "Size_row"));
+	($mol_mem(($.$bog_pazzle_settings.prototype), "Size"));
+	($mol_mem(($.$bog_pazzle_settings.prototype), "Presets"));
+	($mol_mem(($.$bog_pazzle_settings.prototype), "Numbers"));
+	($mol_mem(($.$bog_pazzle_settings.prototype), "grid_rows"));
+	($mol_mem(($.$bog_pazzle_settings.prototype), "grid_columns"));
+	($mol_mem(($.$bog_pazzle_settings.prototype), "numbers"));
+	($mol_mem_key(($.$bog_pazzle_settings.prototype), "Preset"));
 
 
 ;
 "use strict";
+
 
 ;
 "use strict";
@@ -11695,1456 +14139,31 @@ var $;
     var $$;
     (function ($$) {
         class $bog_pazzle_settings extends $.$bog_pazzle_settings {
-            rows_count(next) {
-                return next ?? 4;
+            sizes() {
+                return [3, 4, 5, 6];
             }
-            columns_count(next) {
-                return next ?? 4;
+            presets() {
+                return this.sizes().map(size => this.Preset(size));
             }
-            shuffle_enabled(next) {
-                return next ?? true;
+            preset_title(size) {
+                return size + ' × ' + size;
             }
-            show_numbers(next) {
-                return next ?? true;
+            preset_current(size) {
+                return this.grid_rows() === size && this.grid_columns() === size;
+            }
+            preset_pick(size, next) {
+                this.grid_rows(size);
+                this.grid_columns(size);
+                return null;
             }
         }
         __decorate([
             $mol_mem
-        ], $bog_pazzle_settings.prototype, "rows_count", null);
+        ], $bog_pazzle_settings.prototype, "presets", null);
         __decorate([
-            $mol_mem
-        ], $bog_pazzle_settings.prototype, "columns_count", null);
-        __decorate([
-            $mol_mem
-        ], $bog_pazzle_settings.prototype, "shuffle_enabled", null);
-        __decorate([
-            $mol_mem
-        ], $bog_pazzle_settings.prototype, "show_numbers", null);
+            $mol_action
+        ], $bog_pazzle_settings.prototype, "preset_pick", null);
         $$.$bog_pazzle_settings = $bog_pazzle_settings;
-    })($$ = $.$$ || ($.$$ = {}));
-})($ || ($ = {}));
-
-;
-	($.$mol_row) = class $mol_row extends ($.$mol_view) {};
-
-
-;
-"use strict";
-var $;
-(function ($) {
-    $mol_style_attach("mol/row/row.view.css", "[mol_row] {\n\tdisplay: flex;\n\tflex-wrap: wrap;\n\talign-items: flex-start;\n\talign-content: flex-start;\n\tjustify-content: flex-start;\n\tpadding: var(--mol_gap_block);\n\tgap: var(--mol_gap_block);\n\tflex: 0 0 auto;\n\tbox-sizing: border-box;\n\tmax-width: 100%;\n}\n\n[mol_row] > * {\n\tmax-width: 100%;\n}\n");
-})($ || ($ = {}));
-
-;
-"use strict";
-
-;
-	($.$bog_pazzle_board_victory) = class $bog_pazzle_board_victory extends ($.$mol_view) {
-		Title(){
-			const obj = new this.$.$mol_text();
-			(obj.text) = () => ("Пазл собран!");
-			return obj;
-		}
-		stats_text(){
-			return "";
-		}
-		Stats(){
-			const obj = new this.$.$mol_text();
-			(obj.text) = () => ((this.stats_text()));
-			return obj;
-		}
-		Card(){
-			const obj = new this.$.$mol_list();
-			(obj.rows) = () => ([(this.Title()), (this.Stats())]);
-			return obj;
-		}
-		moves(){
-			return 0;
-		}
-		sub(){
-			return [(this.Card())];
-		}
-	};
-	($mol_mem(($.$bog_pazzle_board_victory.prototype), "Title"));
-	($mol_mem(($.$bog_pazzle_board_victory.prototype), "Stats"));
-	($mol_mem(($.$bog_pazzle_board_victory.prototype), "Card"));
-
-
-;
-"use strict";
-
-;
-"use strict";
-var $;
-(function ($) {
-    var $$;
-    (function ($$) {
-        class $bog_pazzle_board_victory extends $.$bog_pazzle_board_victory {
-            stats_text() {
-                const moves = this.moves();
-                return `Ходов: ${moves}`;
-            }
-        }
-        __decorate([
-            $mol_mem
-        ], $bog_pazzle_board_victory.prototype, "stats_text", null);
-        $$.$bog_pazzle_board_victory = $bog_pazzle_board_victory;
-    })($$ = $.$$ || ($.$$ = {}));
-})($ || ($ = {}));
-
-;
-"use strict";
-var $;
-(function ($) {
-    var $$;
-    (function ($$) {
-        $mol_style_define($bog_pazzle_board_victory, {
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 20,
-            background: { color: '#00000033' },
-            Card: {
-                background: { color: $mol_theme.card },
-                boxShadow: `0 8px 32px #00000066`,
-                border: { radius: $mol_gap.round },
-                padding: {
-                    top: $mol_gap.block,
-                    bottom: $mol_gap.block,
-                    left: $mol_gap.block,
-                    right: $mol_gap.block,
-                },
-                textAlign: 'center',
-                gap: $mol_gap.space,
-            },
-            Title: {
-                fontSize: '1.5rem',
-                fontWeight: 'bold',
-            },
-            Stats: {
-                color: $mol_theme.shade,
-            },
-        });
-        $mol_style_attach('bog_pazzle_victory_backdrop', `
-		[bog_pazzle_board_victory] {
-			backdrop-filter: blur(4px);
-			-webkit-backdrop-filter: blur(4px);
-		}
-	`);
-    })($$ = $.$$ || ($.$$ = {}));
-})($ || ($ = {}));
-
-;
-	($.$bog_pazzle_board) = class $bog_pazzle_board extends ($.$mol_view) {
-		Placeholder(){
-			const obj = new this.$.$mol_text();
-			(obj.text) = () => ("Предпросмотр появится после выбора изображения.");
-			return obj;
-		}
-		Controls(){
-			const obj = new this.$.$mol_row();
-			return obj;
-		}
-		grid_template_columns(){
-			return "";
-		}
-		grid_template_rows(){
-			return "";
-		}
-		grid_aspect_ratio(){
-			return "";
-		}
-		solved(){
-			return false;
-		}
-		Grid(){
-			const obj = new this.$.$mol_view();
-			(obj.style) = () => ({
-				"gridTemplateColumns": (this.grid_template_columns()), 
-				"gridTemplateRows": (this.grid_template_rows()), 
-				"aspectRatio": (this.grid_aspect_ratio())
-			});
-			(obj.attr) = () => ({"bog_pazzle_solved": (this.solved())});
-			return obj;
-		}
-		moves(){
-			return 0;
-		}
-		image_uri(){
-			return "";
-		}
-		rows(){
-			return 1;
-		}
-		columns(){
-			return 1;
-		}
-		show_numbers(){
-			return false;
-		}
-		shuffle_enabled(){
-			return false;
-		}
-		sub(){
-			return [
-				(this.Placeholder()), 
-				(this.Controls()), 
-				(this.Grid())
-			];
-		}
-		Victory(){
-			const obj = new this.$.$bog_pazzle_board_victory();
-			(obj.moves) = () => ((this.moves()));
-			return obj;
-		}
-	};
-	($mol_mem(($.$bog_pazzle_board.prototype), "Placeholder"));
-	($mol_mem(($.$bog_pazzle_board.prototype), "Controls"));
-	($mol_mem(($.$bog_pazzle_board.prototype), "Grid"));
-	($mol_mem(($.$bog_pazzle_board.prototype), "Victory"));
-
-
-;
-	($.$rise_drag) = class $rise_drag extends ($.$mol_plugin) {
-		pointerdown(next){
-			if(next !== undefined) return next;
-			return null;
-		}
-		dragged(next){
-			if(next !== undefined) return next;
-			return false;
-		}
-		x(next){
-			if(next !== undefined) return next;
-			return 0;
-		}
-		y(next){
-			if(next !== undefined) return next;
-			return 0;
-		}
-		repos_x(id){
-			return 1;
-		}
-		repos_y(id){
-			return 1;
-		}
-		on_drag(next){
-			if(next !== undefined) return next;
-			return null;
-		}
-		on_drag_start(next){
-			if(next !== undefined) return next;
-			return null;
-		}
-		on_drag_end(next){
-			if(next !== undefined) return next;
-			return null;
-		}
-		drag(next){
-			if(next !== undefined) return next;
-			return null;
-		}
-		drag_start(next){
-			if(next !== undefined) return next;
-			return null;
-		}
-		drag_end(next){
-			if(next !== undefined) return next;
-			return null;
-		}
-		use_buttons(){
-			return [0];
-		}
-		event(){
-			return {...(super.event()), "pointerdown": (next) => (this.pointerdown(next))};
-		}
-		attr(){
-			return {...(super.attr()), "rise_dragged": (this.dragged())};
-		}
-		drags_synced(){
-			return [];
-		}
-	};
-	($mol_mem(($.$rise_drag.prototype), "pointerdown"));
-	($mol_mem(($.$rise_drag.prototype), "dragged"));
-	($mol_mem(($.$rise_drag.prototype), "x"));
-	($mol_mem(($.$rise_drag.prototype), "y"));
-	($mol_mem(($.$rise_drag.prototype), "on_drag"));
-	($mol_mem(($.$rise_drag.prototype), "on_drag_start"));
-	($mol_mem(($.$rise_drag.prototype), "on_drag_end"));
-	($mol_mem(($.$rise_drag.prototype), "drag"));
-	($mol_mem(($.$rise_drag.prototype), "drag_start"));
-	($mol_mem(($.$rise_drag.prototype), "drag_end"));
-
-
-;
-"use strict";
-
-;
-"use strict";
-var $;
-(function ($) {
-    var $$;
-    (function ($$) {
-        class $rise_drag extends $.$rise_drag {
-            repos_x(val) {
-                return val;
-            }
-            repos_y(val) {
-                return val;
-            }
-            start_event;
-            start_pos;
-            drag_start(event) {
-                this.start_event = event;
-                this.start_pos = { x: this.x(), y: this.y() };
-                this.dragged(true);
-                this.on_drag_start(event);
-            }
-            drag(event) {
-                this.x(this.start_pos.x + this.repos_x(event.x - this.start_event.x));
-                this.y(this.start_pos.y + this.repos_y(event.y - this.start_event.y));
-                this.on_drag(event);
-            }
-            drag_end(event) {
-                this.dragged(false);
-                this.on_drag_end(event);
-            }
-            pointerdown(event) {
-                if (!this.use_buttons().includes(event.button))
-                    return;
-                this.drag_start(event);
-                const drags_synced = this.drags_synced();
-                this.drags_synced().forEach(d => d.drag_start(event));
-                const mousemove = new $mol_dom_listener(this.$.$mol_dom_context.document, 'mousemove', $mol_wire_async(event => {
-                    this.drag(event);
-                    drags_synced.forEach(d => d.drag(event));
-                }));
-                const mouseup = new $mol_dom_listener(this.$.$mol_dom_context.document, 'mouseup', $mol_wire_async(event => {
-                    this.drag_end(event);
-                    drags_synced.forEach(d => d.drag_end(event));
-                    mouseup?.destructor();
-                    mousemove?.destructor();
-                }));
-            }
-        }
-        $$.$rise_drag = $rise_drag;
-    })($$ = $.$$ || ($.$$ = {}));
-})($ || ($ = {}));
-
-;
-	($.$rise_drag_view) = class $rise_drag_view extends ($.$mol_view) {
-		on_drag_start(next){
-			if(next !== undefined) return next;
-			return null;
-		}
-		on_drag_end(next){
-			if(next !== undefined) return next;
-			return null;
-		}
-		on_drag(next){
-			if(next !== undefined) return next;
-			return null;
-		}
-		dragged(){
-			return (this.Drag().dragged());
-		}
-		y(next){
-			if(next !== undefined) return next;
-			return 0;
-		}
-		x(next){
-			if(next !== undefined) return next;
-			return 0;
-		}
-		drags_synced(){
-			return [];
-		}
-		repos_x(id){
-			return 1;
-		}
-		repos_y(id){
-			return 1;
-		}
-		pointerdown(next){
-			return (this.Drag().pointerdown(next));
-		}
-		Drag(){
-			const obj = new this.$.$rise_drag();
-			(obj.on_drag_start) = (next) => ((this.on_drag_start(next)));
-			(obj.on_drag_end) = (next) => ((this.on_drag_end(next)));
-			(obj.on_drag) = (next) => ((this.on_drag(next)));
-			(obj.y) = (next) => ((this.y(next)));
-			(obj.x) = (next) => ((this.x(next)));
-			(obj.drags_synced) = () => ((this.drags_synced()));
-			(obj.repos_x) = (id) => ((this.repos_x(id)));
-			(obj.repos_y) = (id) => ((this.repos_y(id)));
-			return obj;
-		}
-		plugins(){
-			return [...(super.plugins()), (this.Drag())];
-		}
-		style(){
-			return {...(super.style()), "userSelect": "none"};
-		}
-	};
-	($mol_mem(($.$rise_drag_view.prototype), "on_drag_start"));
-	($mol_mem(($.$rise_drag_view.prototype), "on_drag_end"));
-	($mol_mem(($.$rise_drag_view.prototype), "on_drag"));
-	($mol_mem(($.$rise_drag_view.prototype), "y"));
-	($mol_mem(($.$rise_drag_view.prototype), "x"));
-	($mol_mem(($.$rise_drag_view.prototype), "Drag"));
-
-
-;
-"use strict";
-
-;
-"use strict";
-var $;
-(function ($) {
-    var $$;
-    (function ($$) {
-        class $rise_drag_view extends $.$rise_drag_view {
-            repos_x(val) {
-                return val;
-            }
-            repos_y(val) {
-                return val;
-            }
-        }
-        $$.$rise_drag_view = $rise_drag_view;
-    })($$ = $.$$ || ($.$$ = {}));
-})($ || ($ = {}));
-
-;
-	($.$bog_pazzle_board_tile) = class $bog_pazzle_board_tile extends ($.$rise_drag_view) {
-		label(){
-			return "";
-		}
-		Number(){
-			const obj = new this.$.$mol_text();
-			(obj.text) = () => ((this.label()));
-			return obj;
-		}
-		rows(){
-			return 1;
-		}
-		columns(){
-			return 1;
-		}
-		piece_row(){
-			return 0;
-		}
-		piece_column(){
-			return 0;
-		}
-		image_uri(){
-			return "";
-		}
-		selected(){
-			return false;
-		}
-		event_click(next){
-			if(next !== undefined) return next;
-			return null;
-		}
-		slot_index(){
-			return 0;
-		}
-		repos_x(id){
-			return 1;
-		}
-		repos_y(id){
-			return 1;
-		}
-		sub(){
-			return [(this.Number())];
-		}
-	};
-	($mol_mem(($.$bog_pazzle_board_tile.prototype), "Number"));
-	($mol_mem(($.$bog_pazzle_board_tile.prototype), "event_click"));
-
-
-;
-"use strict";
-
-;
-"use strict";
-var $;
-(function ($) {
-    var $$;
-    (function ($$) {
-        class $bog_pazzle_board_tile extends $.$bog_pazzle_board_tile {
-            rows(next) {
-                return next ?? 1;
-            }
-            columns(next) {
-                return next ?? 1;
-            }
-            image_uri(next) {
-                return next ?? '';
-            }
-            piece_row(next) {
-                return next ?? 0;
-            }
-            piece_column(next) {
-                return next ?? 0;
-            }
-            selected(next) {
-                return next ?? false;
-            }
-            label(next) {
-                return next ?? '';
-            }
-            slot_index(next) {
-                return next ?? 0;
-            }
-            drags_synced(next) {
-                return next ?? [];
-            }
-            repos_x(delta) {
-                return this.limit_delta(delta);
-            }
-            repos_y(delta) {
-                return this.limit_delta(delta);
-            }
-            limit_delta(delta) {
-                const max = this.drag_limit();
-                if (!Number.isFinite(max) || max <= 0)
-                    return delta;
-                return Math.max(-max, Math.min(max, delta));
-            }
-            drag_limit() {
-                const rows = Math.max(1, this.rows());
-                const columns = Math.max(1, this.columns());
-                const min_dimension = Math.min(rows, columns);
-                if (min_dimension <= 0)
-                    return Number.POSITIVE_INFINITY;
-                const base = Math.min(this.cell_size_px().width, this.cell_size_px().height);
-                if (!base)
-                    return Number.POSITIVE_INFINITY;
-                return base * 0.8;
-            }
-            cell_size_px() {
-                const grid = this.host_grid();
-                if (!grid)
-                    return { width: 0, height: 0 };
-                const rect = grid.getBoundingClientRect();
-                const rows = Math.max(1, this.rows());
-                const columns = Math.max(1, this.columns());
-                return {
-                    width: rect.width / columns,
-                    height: rect.height / rows,
-                };
-            }
-            host_grid() {
-                const element = this.dom_node();
-                return element?.parentElement;
-            }
-            style() {
-                const rows = Math.max(1, this.rows());
-                const columns = Math.max(1, this.columns());
-                const tile_row = this.piece_row();
-                const tile_column = this.piece_column();
-                const uri = this.image_uri();
-                const offset_x = this.x();
-                const offset_y = this.y();
-                const pos_x = columns === 1 ? 0 : (tile_column / (columns - 1)) * 100;
-                const pos_y = rows === 1 ? 0 : (tile_row / (rows - 1)) * 100;
-                const style = super.style();
-                style.backgroundImage = uri ? `url(${uri})` : '';
-                style.backgroundSize = uri ? `${columns * 100}% ${rows * 100}%` : '';
-                style.backgroundPosition = uri ? `${pos_x}% ${pos_y}%` : '';
-                style.boxShadow = this.selected()
-                    ? 'inset 0 0 0 3px rgba(255,255,255,0.75)'
-                    : 'inset 0 0 0 1px var(--mol_theme_line)';
-                style.transform = offset_x || offset_y ? `translate(${offset_x}px, ${offset_y}px)` : '';
-                style.zIndex = this.dragged() ? 10 : '';
-                style.cursor = this.dragged() ? 'grabbing' : 'grab';
-                style.pointerEvents = this.dragged() ? 'none' : '';
-                return style;
-            }
-            attr() {
-                return {
-                    ...super.attr(),
-                    'data-bog-pazzle-slot': String(this.slot_index()),
-                    'data-selected': this.selected() ? 'true' : 'false',
-                    'data-dragging': this.dragged() ? 'true' : 'false',
-                };
-            }
-        }
-        __decorate([
-            $mol_mem
-        ], $bog_pazzle_board_tile.prototype, "rows", null);
-        __decorate([
-            $mol_mem
-        ], $bog_pazzle_board_tile.prototype, "columns", null);
-        __decorate([
-            $mol_mem
-        ], $bog_pazzle_board_tile.prototype, "image_uri", null);
-        __decorate([
-            $mol_mem
-        ], $bog_pazzle_board_tile.prototype, "piece_row", null);
-        __decorate([
-            $mol_mem
-        ], $bog_pazzle_board_tile.prototype, "piece_column", null);
-        __decorate([
-            $mol_mem
-        ], $bog_pazzle_board_tile.prototype, "selected", null);
-        __decorate([
-            $mol_mem
-        ], $bog_pazzle_board_tile.prototype, "label", null);
-        __decorate([
-            $mol_mem
-        ], $bog_pazzle_board_tile.prototype, "slot_index", null);
-        __decorate([
-            $mol_mem
-        ], $bog_pazzle_board_tile.prototype, "drags_synced", null);
-        $$.$bog_pazzle_board_tile = $bog_pazzle_board_tile;
-    })($$ = $.$$ || ($.$$ = {}));
-})($ || ($ = {}));
-
-;
-"use strict";
-var $;
-(function ($) {
-    var $$;
-    (function ($$) {
-        $mol_style_define($bog_pazzle_board_tile, {
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: {
-                repeat: 'no-repeat',
-                color: $mol_theme.back,
-            },
-            boxShadow: `inset 0 0 0 1px ${$mol_theme.line}`,
-            position: 'relative',
-            cursor: 'pointer',
-            Number: {
-                position: 'absolute',
-                top: $mol_gap.block,
-                right: $mol_gap.block,
-                fontSize: '.75rem',
-                padding: {
-                    top: 0,
-                    bottom: 0,
-                    left: $mol_gap.round,
-                    right: $mol_gap.round,
-                },
-                background: {
-                    color: $mol_theme.shade,
-                },
-                color: 'white',
-                border: { radius: $mol_gap.round },
-                display: 'inline-flex',
-                ':empty': {
-                    display: 'none',
-                },
-                pointerEvents: 'none',
-            },
-        });
-    })($$ = $.$$ || ($.$$ = {}));
-})($ || ($ = {}));
-
-;
-"use strict";
-
-;
-"use strict";
-var $;
-(function ($_1) {
-    var $$;
-    (function ($$) {
-        class $bog_pazzle_board extends $.$bog_pazzle_board {
-            image_dimensions() {
-                const uri = this.image_uri();
-                if (!uri)
-                    return null;
-                return $mol_wire_sync(this).image_load(uri);
-            }
-            async image_load(uri) {
-                const img = new Image();
-                img.src = uri;
-                await img.decode();
-                return { width: img.naturalWidth, height: img.naturalHeight };
-            }
-            grid_aspect_ratio() {
-                const dim = this.image_dimensions();
-                if (!dim)
-                    return '';
-                return `${dim.width} / ${dim.height}`;
-            }
-            sub() {
-                if (!this.image_present())
-                    return [this.Placeholder()];
-                return [this.Controls(), this.Grid()];
-            }
-            Grid() {
-                const grid = super.Grid();
-                grid.sub = () => {
-                    const tiles = [...this.tiles()];
-                    if (this.solved())
-                        tiles.push(this.Victory());
-                    return tiles;
-                };
-                return grid;
-            }
-            Controls() {
-                const controls = super.Controls();
-                controls.sub = () => [
-                    this.Status_text(),
-                    this.Moves_text(),
-                    ...(this.tile_count() > 1 ? [this.Shuffle_btn(), this.Reset_btn()] : []),
-                ];
-                return controls;
-            }
-            Status_text() {
-                const $ = this.$;
-                return $.$mol_text.make({
-                    text: () => (this.solved() ? 'Собрано! 🎉' : 'Соберите пазл'),
-                });
-            }
-            Moves_text() {
-                const $ = this.$;
-                return $.$mol_text.make({
-                    text: () => `Ходов: ${this.moves()}`,
-                });
-            }
-            Shuffle_btn() {
-                const $ = this.$;
-                return $.$mol_button_minor.make({
-                    sub: () => [$.$mol_text.make({ text: () => 'Перемешать' })],
-                    click: () => this.shuffle(),
-                    enabled: () => this.tile_count() > 1,
-                });
-            }
-            Reset_btn() {
-                const $ = this.$;
-                return $.$mol_button_minor.make({
-                    sub: () => [$.$mol_text.make({ text: () => 'Сбросить' })],
-                    click: () => this.reset(),
-                    enabled: () => !this.solved() && this.tile_count() > 1,
-                });
-            }
-            image_present() {
-                return !!this.image_uri();
-            }
-            tiles() {
-                if (!this.image_present())
-                    return [];
-                const rows = Math.max(1, this.rows());
-                const columns = Math.max(1, this.columns());
-                const order = this.tile_indices();
-                const uri = this.image_uri();
-                return order.map((piece_index, slot_index) => {
-                    const piece_row = Math.floor(piece_index / columns);
-                    const piece_column = piece_index % columns;
-                    return this.tile({
-                        slot_index,
-                        piece_row,
-                        piece_column,
-                        rows,
-                        columns,
-                        uri,
-                        piece_index,
-                    });
-                });
-            }
-            tile({ slot_index, piece_row, piece_column, rows, columns, uri, piece_index, }) {
-                const tile = this.tile_instance(slot_index);
-                tile.rows(rows);
-                tile.columns(columns);
-                tile.piece_row(piece_row);
-                tile.piece_column(piece_column);
-                tile.image_uri(uri);
-                tile.slot_index(slot_index);
-                tile.label(this.show_numbers() ? String(piece_index + 1) : '');
-                tile.selected(this.tile_marked(slot_index));
-                tile.on_drag_start = ((event) => {
-                    if (event !== undefined)
-                        this.tile_drag_start(slot_index, event);
-                    return null;
-                });
-                tile.on_drag = ((event) => {
-                    if (event !== undefined)
-                        this.tile_drag_move(slot_index, event);
-                    return null;
-                });
-                tile.on_drag_end = ((event) => {
-                    if (event !== undefined)
-                        this.tile_drag_end(slot_index, event);
-                    return null;
-                });
-                const group = this.tile_groups().get(slot_index) ?? [slot_index];
-                const synced = group
-                    .filter(member => member !== slot_index)
-                    .map(member => this.tile_instance(member).Drag());
-                tile.drags_synced(synced);
-                return tile;
-            }
-            tile_instance(slot_index) {
-                const $ = this.$;
-                return $.$bog_pazzle_board_tile.make({
-                    slot_index: $.$mol_const(slot_index),
-                });
-            }
-            slot_coord(slot) {
-                const columns = Math.max(1, this.columns());
-                return {
-                    row: Math.floor(slot / columns),
-                    col: slot % columns,
-                };
-            }
-            piece_coord(piece) {
-                const columns = Math.max(1, this.columns());
-                return {
-                    row: Math.floor(piece / columns),
-                    col: piece % columns,
-                };
-            }
-            slot_neighbors(slot) {
-                const neighbors = [];
-                const columns = Math.max(1, this.columns());
-                const rows = Math.max(1, this.rows());
-                const { row, col } = this.slot_coord(slot);
-                if (col > 0)
-                    neighbors.push(slot - 1);
-                if (col + 1 < columns)
-                    neighbors.push(slot + 1);
-                if (row > 0)
-                    neighbors.push(slot - columns);
-                if (row + 1 < rows)
-                    neighbors.push(slot + columns);
-                return neighbors;
-            }
-            slots_aligned(slot_a, slot_b, order) {
-                const { row: row_a, col: col_a } = this.slot_coord(slot_a);
-                const { row: row_b, col: col_b } = this.slot_coord(slot_b);
-                const delta_row = row_b - row_a;
-                const delta_col = col_b - col_a;
-                if (Math.abs(delta_row) + Math.abs(delta_col) !== 1)
-                    return false;
-                const piece_a = order[slot_a];
-                const piece_b = order[slot_b];
-                if (piece_a === undefined || piece_b === undefined)
-                    return false;
-                const target_a = this.piece_coord(piece_a);
-                const target_b = this.piece_coord(piece_b);
-                return target_b.row - target_a.row === delta_row && target_b.col - target_a.col === delta_col;
-            }
-            tile_groups() {
-                const order = this.tile_indices();
-                const groups = new Map();
-                const visited = new Set();
-                for (let slot = 0; slot < order.length; slot++) {
-                    if (visited.has(slot))
-                        continue;
-                    const group = [];
-                    const stack = [slot];
-                    while (stack.length) {
-                        const current = stack.pop();
-                        if (visited.has(current))
-                            continue;
-                        visited.add(current);
-                        group.push(current);
-                        for (const neighbor of this.slot_neighbors(current)) {
-                            if (!visited.has(neighbor) && this.slots_aligned(current, neighbor, order))
-                                stack.push(neighbor);
-                        }
-                    }
-                    const readonly_group = Object.freeze([...group]);
-                    for (const member of readonly_group)
-                        groups.set(member, readonly_group);
-                }
-                return groups;
-            }
-            tile_locked(slot_index) {
-                const group = this.tile_groups().get(slot_index) ?? [slot_index];
-                const order = this.tile_indices();
-                return group.every(slot => order[slot] === slot);
-            }
-            tile_marked(slot_index) {
-                const selected = this.selected_index();
-                const drag_source = this.drag_source_index();
-                const drag_hover = this.drag_hover_index();
-                const group = this.drag_group_slots();
-                const targets = this.drag_target_slots();
-                if (group && group.includes(slot_index))
-                    return true;
-                if (targets && targets.includes(slot_index))
-                    return true;
-                if (drag_source !== null && drag_source === slot_index)
-                    return true;
-                if (drag_hover !== null && drag_hover === slot_index && drag_source !== null)
-                    return true;
-                return selected !== null && selected === slot_index;
-            }
-            drag_source_index(next) {
-                this.rows();
-                this.columns();
-                this.image_uri();
-                if (next !== undefined)
-                    return next;
-                return null;
-            }
-            drag_hover_index(next) {
-                this.rows();
-                this.columns();
-                this.image_uri();
-                if (next !== undefined)
-                    return next;
-                return null;
-            }
-            drag_group_slots(next) {
-                if (next !== undefined)
-                    return next ?? null;
-                return null;
-            }
-            drag_target_slots(next) {
-                if (next !== undefined)
-                    return next ?? null;
-                return null;
-            }
-            slot_index_from_point(client_x, client_y) {
-                if (client_x === undefined || client_y === undefined)
-                    return null;
-                const doc = this.$.$mol_dom_context.document;
-                const element = doc.elementFromPoint(client_x, client_y);
-                const tile = element?.closest?.('[data-bog-pazzle-slot]');
-                if (tile) {
-                    const slot = Number(tile.getAttribute('data-bog-pazzle-slot'));
-                    if (Number.isFinite(slot))
-                        return slot;
-                }
-                const grid = this.Grid().dom_node();
-                if (!grid)
-                    return null;
-                const rect = grid.getBoundingClientRect();
-                if (client_x < rect.left || client_x > rect.right || client_y < rect.top || client_y > rect.bottom)
-                    return null;
-                const rel_x = client_x - rect.left;
-                const rel_y = client_y - rect.top;
-                const columns = Math.max(1, this.columns());
-                const rows = Math.max(1, this.rows());
-                const cell_width = rect.width / columns;
-                const cell_height = rect.height / rows;
-                const column = Math.min(columns - 1, Math.max(0, Math.floor(rel_x / cell_width)));
-                const row = Math.min(rows - 1, Math.max(0, Math.floor(rel_y / cell_height)));
-                return row * columns + column;
-            }
-            reset_tile_position(slot_index) {
-                const tile = this.tile_instance(slot_index);
-                tile.x(0);
-                tile.y(0);
-            }
-            tile_drag_start(slot_index, _event) {
-                if (this.tile_locked(slot_index)) {
-                    this.drag_source_index(null);
-                    this.drag_hover_index(null);
-                    this.drag_group_slots(null);
-                    this.drag_target_slots(null);
-                    this.reset_tile_position(slot_index);
-                    return;
-                }
-                const group = this.tile_groups().get(slot_index) ?? [slot_index];
-                this.drag_group_slots(group);
-                this.drag_target_slots(group);
-                this.drag_source_index(slot_index);
-                this.drag_hover_index(slot_index);
-            }
-            tile_drag_move(slot_index, event) {
-                const source = this.drag_source_index();
-                if (source === null || slot_index !== source)
-                    return;
-                const hover = this.slot_index_from_point(event.clientX, event.clientY);
-                const group = this.drag_group_slots() ?? [source];
-                if (hover === null) {
-                    this.drag_hover_index(source);
-                    this.drag_target_slots(group);
-                    return;
-                }
-                this.drag_hover_index(hover);
-                const source_coord = this.slot_coord(source);
-                const hover_coord = this.slot_coord(hover);
-                const delta_row = hover_coord.row - source_coord.row;
-                const delta_col = hover_coord.col - source_coord.col;
-                const dest = this.group_dest_slots(group, delta_row, delta_col);
-                this.drag_target_slots(dest ?? group);
-            }
-            tile_drag_end(slot_index, event) {
-                const source = this.drag_source_index();
-                if (source !== null && slot_index === source) {
-                    const group = this.drag_group_slots() ?? [source];
-                    const dest = this.drag_target_slots();
-                    let moved = false;
-                    if (dest && dest.length === group.length && !this.same_slots(group, dest)) {
-                        moved = this.apply_group_move(group, dest);
-                    }
-                    else {
-                        const target = this.slot_index_from_point(event.clientX, event.clientY);
-                        if (target !== null && target !== source) {
-                            const order = [...this.tile_indices()];
-                            [order[source], order[target]] = [order[target], order[source]];
-                            this.tile_indices(order);
-                            moved = true;
-                        }
-                        else {
-                            this.reset_all_tile_positions();
-                            this.drag_source_index(null);
-                            this.drag_hover_index(null);
-                            this.drag_group_slots(null);
-                            this.drag_target_slots(null);
-                            this.tile_pick(source);
-                            return;
-                        }
-                    }
-                    if (moved)
-                        this.moves(this.moves() + 1);
-                }
-                this.reset_all_tile_positions();
-                this.selected_index(null);
-                this.drag_source_index(null);
-                this.drag_hover_index(null);
-                this.drag_group_slots(null);
-                this.drag_target_slots(null);
-            }
-            tile_indices(next) {
-                const rows = Math.max(1, this.rows());
-                const columns = Math.max(1, this.columns());
-                const count = rows * columns;
-                const image = this.image_uri();
-                const should_shuffle = this.shuffle_enabled();
-                if (!image || count === 0)
-                    return [];
-                if (next !== undefined)
-                    return next;
-                const base = this.indices_default(count);
-                if (!should_shuffle || count < 2)
-                    return base;
-                return this.shuffle_with_seed(base, this.seed_from_string(`${image}|${rows}|${columns}`));
-            }
-            indices_default(count) {
-                return Array.from({ length: count }, (_, index) => index);
-            }
-            shuffle_with_seed(base, seed) {
-                const order = [...base];
-                let value = seed >>> 0;
-                for (let index = order.length - 1; index > 0; index--) {
-                    value = (value * 1664525 + 1013904223) >>> 0;
-                    const swap = value % (index + 1);
-                    [order[index], order[swap]] = [order[swap], order[index]];
-                }
-                if (this.is_order_solved(order) && order.length > 1) {
-                    ;
-                    [order[0], order[1]] = [order[1], order[0]];
-                }
-                return order;
-            }
-            seed_from_string(source) {
-                let seed = 0;
-                for (let index = 0; index < source.length; index++) {
-                    seed = (seed * 31 + source.charCodeAt(index)) >>> 0;
-                }
-                return seed || 1;
-            }
-            selected_index(next) {
-                this.rows();
-                this.columns();
-                this.image_uri();
-                if (next !== undefined)
-                    return next;
-                return null;
-            }
-            moves(next) {
-                this.rows();
-                this.columns();
-                this.image_uri();
-                if (next !== undefined)
-                    return next;
-                return 0;
-            }
-            tile_count() {
-                return Math.max(1, this.rows()) * Math.max(1, this.columns());
-            }
-            is_order_solved(order) {
-                return order.every((value, index) => value === index);
-            }
-            solved() {
-                const order = this.tile_indices();
-                return this.is_order_solved(order);
-            }
-            tile_pick(slot_index) {
-                if (this.tile_locked(slot_index)) {
-                    this.selected_index(null);
-                    return;
-                }
-                this.drag_source_index(null);
-                this.drag_hover_index(null);
-                const current = this.selected_index();
-                if (current === null) {
-                    this.selected_index(slot_index);
-                    return;
-                }
-                if (this.tile_locked(current)) {
-                    this.selected_index(null);
-                    return;
-                }
-                if (current === slot_index) {
-                    this.selected_index(null);
-                    return;
-                }
-                const order = [...this.tile_indices()];
-                [order[current], order[slot_index]] = [order[slot_index], order[current]];
-                this.tile_indices(order);
-                this.moves(this.moves() + 1);
-                this.selected_index(null);
-            }
-            shuffle() {
-                const order = this.shuffle_random(this.tile_indices());
-                this.tile_indices(order);
-                this.moves(0);
-                this.selected_index(null);
-                this.drag_source_index(null);
-                this.drag_hover_index(null);
-                this.drag_group_slots(null);
-                this.drag_target_slots(null);
-                this.reset_all_tile_positions();
-            }
-            shuffle_random(base) {
-                const order = [...base];
-                for (let index = order.length - 1; index > 0; index--) {
-                    const swap = Math.floor(Math.random() * (index + 1));
-                    [order[index], order[swap]] = [order[swap], order[index]];
-                }
-                if (this.is_order_solved(order) && order.length > 1) {
-                    ;
-                    [order[0], order[1]] = [order[1], order[0]];
-                }
-                return order;
-            }
-            reset() {
-                const rows = Math.max(1, this.rows());
-                const columns = Math.max(1, this.columns());
-                this.tile_indices(this.indices_default(rows * columns));
-                this.moves(0);
-                this.selected_index(null);
-                this.drag_source_index(null);
-                this.drag_hover_index(null);
-                this.drag_group_slots(null);
-                this.drag_target_slots(null);
-                this.reset_all_tile_positions();
-            }
-            reset_all_tile_positions() {
-                const total = this.tile_count();
-                for (let slot = 0; slot < total; slot++) {
-                    this.reset_tile_position(slot);
-                }
-            }
-            group_dest_slots(group, delta_row, delta_col) {
-                const rows = Math.max(1, this.rows());
-                const columns = Math.max(1, this.columns());
-                const dest = [];
-                const set = new Set();
-                for (const slot of group) {
-                    const { row, col } = this.slot_coord(slot);
-                    const dest_row = row + delta_row;
-                    const dest_col = col + delta_col;
-                    if (dest_row < 0 || dest_row >= rows || dest_col < 0 || dest_col >= columns)
-                        return null;
-                    const dest_slot = dest_row * columns + dest_col;
-                    if (set.has(dest_slot))
-                        return null;
-                    set.add(dest_slot);
-                    dest.push(dest_slot);
-                }
-                return dest;
-            }
-            same_slots(a, b) {
-                if (a.length !== b.length)
-                    return false;
-                for (let i = 0; i < a.length; i++) {
-                    if (a[i] !== b[i])
-                        return false;
-                }
-                return true;
-            }
-            apply_group_move(group, dest) {
-                if (dest.length !== group.length)
-                    return false;
-                const order = this.tile_indices();
-                const new_order = [...order];
-                const group_set = new Set(group);
-                const dest_set = new Set(dest);
-                if (dest_set.size !== dest.length)
-                    return false;
-                const displaced = [];
-                const sources_for_displaced = [];
-                for (let i = 0; i < group.length; i++) {
-                    const src = group[i];
-                    const dst = dest[i];
-                    const piece = order[src];
-                    const occupant = order[dst];
-                    if (!group_set.has(dst))
-                        displaced.push(occupant);
-                    new_order[dst] = piece;
-                    if (!dest_set.has(src))
-                        sources_for_displaced.push(src);
-                }
-                if (displaced.length !== sources_for_displaced.length)
-                    return false;
-                let index = 0;
-                for (const src of sources_for_displaced) {
-                    new_order[src] = displaced[index++];
-                }
-                this.tile_indices(new_order);
-                return true;
-            }
-            grid_template_columns() {
-                return `repeat(${Math.max(1, this.columns())}, 1fr)`;
-            }
-            grid_template_rows() {
-                return `repeat(${Math.max(1, this.rows())}, 1fr)`;
-            }
-        }
-        __decorate([
-            $mol_mem
-        ], $bog_pazzle_board.prototype, "image_dimensions", null);
-        __decorate([
-            $mol_mem
-        ], $bog_pazzle_board.prototype, "grid_aspect_ratio", null);
-        __decorate([
-            $mol_mem
-        ], $bog_pazzle_board.prototype, "sub", null);
-        __decorate([
-            $mol_mem
-        ], $bog_pazzle_board.prototype, "image_present", null);
-        __decorate([
-            $mol_mem
-        ], $bog_pazzle_board.prototype, "tiles", null);
-        __decorate([
-            $mol_mem
-        ], $bog_pazzle_board.prototype, "tile_groups", null);
-        __decorate([
-            $mol_mem
-        ], $bog_pazzle_board.prototype, "drag_source_index", null);
-        __decorate([
-            $mol_mem
-        ], $bog_pazzle_board.prototype, "drag_hover_index", null);
-        __decorate([
-            $mol_mem
-        ], $bog_pazzle_board.prototype, "drag_group_slots", null);
-        __decorate([
-            $mol_mem
-        ], $bog_pazzle_board.prototype, "drag_target_slots", null);
-        __decorate([
-            $mol_action
-        ], $bog_pazzle_board.prototype, "tile_drag_start", null);
-        __decorate([
-            $mol_action
-        ], $bog_pazzle_board.prototype, "tile_drag_move", null);
-        __decorate([
-            $mol_action
-        ], $bog_pazzle_board.prototype, "tile_drag_end", null);
-        __decorate([
-            $mol_mem
-        ], $bog_pazzle_board.prototype, "tile_indices", null);
-        __decorate([
-            $mol_mem
-        ], $bog_pazzle_board.prototype, "selected_index", null);
-        __decorate([
-            $mol_mem
-        ], $bog_pazzle_board.prototype, "moves", null);
-        __decorate([
-            $mol_mem
-        ], $bog_pazzle_board.prototype, "solved", null);
-        __decorate([
-            $mol_action
-        ], $bog_pazzle_board.prototype, "tile_pick", null);
-        __decorate([
-            $mol_action
-        ], $bog_pazzle_board.prototype, "shuffle", null);
-        __decorate([
-            $mol_action
-        ], $bog_pazzle_board.prototype, "reset", null);
-        $$.$bog_pazzle_board = $bog_pazzle_board;
-    })($$ = $_1.$$ || ($_1.$$ = {}));
-})($ || ($ = {}));
-
-;
-"use strict";
-var $;
-(function ($) {
-    var $$;
-    (function ($$) {
-        $mol_style_define($bog_pazzle_board, {
-            display: 'flex',
-            flexDirection: 'column',
-            gap: $mol_gap.block,
-            Controls: {
-                display: 'flex',
-                alignItems: 'center',
-                gap: $mol_gap.block,
-                flexWrap: 'wrap',
-            },
-            Grid: {
-                display: 'grid',
-                gap: '0.25rem',
-                border: { radius: $mol_gap.round },
-                overflow: 'hidden',
-                background: { color: $mol_theme.card },
-                boxShadow: `0 0 0 1px ${$mol_theme.line}`,
-                width: '100%',
-                maxWidth: '100%',
-                position: 'relative',
-            },
-            Placeholder: {
-                color: $mol_theme.shade,
-            },
-        });
-        $mol_style_attach('bog_pazzle_board_solved', `
-		[bog_pazzle_solved="true"] {
-			gap: 0 !important;
-		}
-		[bog_pazzle_solved="true"] [data-bog-pazzle-slot] {
-			box-shadow: none !important;
-		}
-	`);
-    })($$ = $.$$ || ($.$$ = {}));
-})($ || ($ = {}));
-
-;
-	($.$mol_text_list) = class $mol_text_list extends ($.$mol_text) {
-		type(){
-			return "";
-		}
-		auto_scroll(){
-			return null;
-		}
-		attr(){
-			return {...(super.attr()), "mol_text_list_type": (this.type())};
-		}
-		Paragraph(id){
-			const obj = new this.$.$mol_text_list_item();
-			(obj.index) = () => ((this.item_index(id)));
-			(obj.sub) = () => ((this.block_content(id)));
-			return obj;
-		}
-	};
-	($mol_mem_key(($.$mol_text_list.prototype), "Paragraph"));
-	($.$mol_text_list_item) = class $mol_text_list_item extends ($.$mol_paragraph) {
-		index(){
-			return 0;
-		}
-		attr(){
-			return {...(super.attr()), "mol_text_list_item_index": (this.index())};
-		}
-	};
-
-
-;
-"use strict";
-var $;
-(function ($) {
-    $mol_style_attach("mol/text/list/list.view.css", "[mol_text_list] {\r\n\tpadding-left: 1.75rem;\r\n}\r\n\r\n[mol_text_list_item] {\r\n\tcontain: none;\r\n\tdisplay: list-item;\r\n}\r\n\r\n[mol_text_list_item]::before {\r\n\tcontent: attr( mol_text_list_item_index ) \".\";\r\n\twidth: 1.25rem;\r\n\tdisplay: inline-block;\r\n\tposition: absolute;\r\n\tmargin-left: -1.75rem;\r\n\ttext-align: end;\r\n}\r\n\r\n[mol_text_list_type=\"-\"] > [mol_text_list_item]::before,\r\n[mol_text_list_type=\"*\"] > [mol_text_list_item]::before {\r\n\tcontent: \"•\";\r\n}\r\n");
-})($ || ($ = {}));
-
-;
-"use strict";
-
-;
-	($.$bog_pazzle_upload) = class $bog_pazzle_upload extends ($.$mol_list) {
-		Intro(){
-			const obj = new this.$.$mol_text();
-			(obj.text) = () => ("Загрузите изображение и настройте параметры пазла.");
-			return obj;
-		}
-		Image_label(){
-			const obj = new this.$.$mol_text();
-			(obj.text) = () => ("Изображение пазла");
-			return obj;
-		}
-		Image(){
-			const obj = new this.$.$mol_labeler();
-			(obj.Label) = () => ((this.Image_label()));
-			(obj.Content) = () => ((this.Image_control()));
-			return obj;
-		}
-		Settings_title(){
-			const obj = new this.$.$mol_text();
-			(obj.text) = () => ("Настройки пазла");
-			return obj;
-		}
-		Preview_title(){
-			const obj = new this.$.$mol_text();
-			(obj.text) = () => ("Предпросмотр");
-			return obj;
-		}
-		Start_label(){
-			const obj = new this.$.$mol_text();
-			(obj.text) = () => ("▶ Начать игру");
-			return obj;
-		}
-		Start_link(){
-			const obj = new this.$.$mol_link();
-			(obj.arg) = () => ({"mode": "play"});
-			(obj.sub) = () => ([(this.Start_label())]);
-			return obj;
-		}
-		Image_control(){
-			const obj = new this.$.$bog_pazzle_upload_image();
-			return obj;
-		}
-		Settings(){
-			const obj = new this.$.$bog_pazzle_settings();
-			return obj;
-		}
-		Preview(){
-			const obj = new this.$.$bog_pazzle_board();
-			return obj;
-		}
-		rows(){
-			return [
-				(this.Intro()), 
-				(this.Image()), 
-				(this.Settings_title()), 
-				(this.Settings()), 
-				(this.Preview_title()), 
-				(this.Preview()), 
-				(this.Start_link())
-			];
-		}
-	};
-	($mol_mem(($.$bog_pazzle_upload.prototype), "Intro"));
-	($mol_mem(($.$bog_pazzle_upload.prototype), "Image_label"));
-	($mol_mem(($.$bog_pazzle_upload.prototype), "Image"));
-	($mol_mem(($.$bog_pazzle_upload.prototype), "Settings_title"));
-	($mol_mem(($.$bog_pazzle_upload.prototype), "Preview_title"));
-	($mol_mem(($.$bog_pazzle_upload.prototype), "Start_label"));
-	($mol_mem(($.$bog_pazzle_upload.prototype), "Start_link"));
-	($mol_mem(($.$bog_pazzle_upload.prototype), "Image_control"));
-	($mol_mem(($.$bog_pazzle_upload.prototype), "Settings"));
-	($mol_mem(($.$bog_pazzle_upload.prototype), "Preview"));
-
-
-;
-"use strict";
-
-;
-"use strict";
-var $;
-(function ($) {
-    var $$;
-    (function ($$) {
-        class $bog_pazzle_upload extends $.$bog_pazzle_upload {
-        }
-        $$.$bog_pazzle_upload = $bog_pazzle_upload;
     })($$ = $.$$ || ($.$$ = {}));
 })($ || ($ = {}));
 
@@ -13155,95 +14174,140 @@ var $;
     var $$;
     (function ($$) {
         const { rem } = $mol_style_unit;
-        $mol_style_define($bog_pazzle_upload, {
-            padding: $mol_gap.block,
-            border: { radius: $mol_gap.round },
-            boxShadow: `0 0 0 1px ${$mol_theme.line}`,
+        $mol_style_define($bog_pazzle_settings, {
+            display: 'flex',
+            flexDirection: 'column',
             gap: $mol_gap.block,
-            Image_label: {
-                margin: {
-                    top: rem(1),
-                },
+            Size_row: {
+                display: 'flex',
+                alignItems: 'center',
+                gap: $mol_gap.text,
+                flexWrap: 'wrap',
+            },
+            Times: {
+                color: $mol_theme.shade,
+            },
+            Presets: {
+                display: 'flex',
+                gap: $mol_gap.text,
+                flexWrap: 'wrap',
+            },
+            Preset: {
+                minWidth: rem(4),
+                justifyContent: 'center',
             },
         });
+        $mol_style_attach('bog_pazzle_settings_preset', `
+		[bog_pazzle_settings_preset][bog_pazzle_current="true"] {
+			background: var(--mol_theme_current);
+			color: var(--mol_theme_text);
+		}
+	`);
     })($$ = $.$$ || ($.$$ = {}));
 })($ || ($ = {}));
 
 ;
-	($.$mol_button_major) = class $mol_button_major extends ($.$mol_button_minor) {
-		theme(){
-			return "$mol_theme_base";
-		}
-	};
-
-
-;
-"use strict";
-var $;
-(function ($) {
-    $mol_style_attach("mol/button/major/major.view.css", "[mol_button_major] {\n\tbackground-color: var(--mol_theme_back);\n\tcolor: var(--mol_theme_text);\n}\n");
-})($ || ($ = {}));
-
-;
-"use strict";
-
-;
-	($.$bog_pazzle_menu) = class $bog_pazzle_menu extends ($.$mol_list) {
-		Title(){
-			const obj = new this.$.$mol_text();
-			(obj.text) = () => ("Меню");
+	($.$bog_pazzle_upload) = class $bog_pazzle_upload extends ($.$mol_list) {
+		Image(){
+			const obj = new this.$.$mol_labeler();
+			(obj.title) = () => ("Картинка");
+			(obj.content) = () => ([(this.Image_control())]);
 			return obj;
 		}
-		New_game_label(){
+		Hint(){
 			const obj = new this.$.$mol_text();
-			(obj.text) = () => ("Новый пазл");
+			(obj.text) = () => ("Подойдёт любое фото с телефона — оно ужмётся само.");
 			return obj;
 		}
-		New_game(){
+		Settings_title(){
+			const obj = new this.$.$mol_text();
+			(obj.text) = () => ("Настройки");
+			return obj;
+		}
+		Preview_title(){
+			const obj = new this.$.$mol_text();
+			(obj.text) = () => ("Как ляжет сетка");
+			return obj;
+		}
+		Start(){
 			const obj = new this.$.$mol_button_major();
-			(obj.sub) = () => ([(this.New_game_label())]);
+			(obj.title) = () => ("Начать игру");
+			(obj.click) = (next) => ((this.start(next)));
 			return obj;
 		}
-		Saved_label(){
-			const obj = new this.$.$mol_text();
-			(obj.text) = () => ("Мои сохранения");
+		upload_content(){
+			return [
+				(this.Image()), 
+				(this.Hint()), 
+				(this.Settings_title()), 
+				(this.Settings()), 
+				(this.Preview_title()), 
+				(this.Preview()), 
+				(this.Start())
+			];
+		}
+		image_uri(){
+			return "";
+		}
+		picked(next){
+			if(next !== undefined) return next;
+			return null;
+		}
+		grid_rows(next){
+			if(next !== undefined) return next;
+			return 4;
+		}
+		grid_columns(next){
+			if(next !== undefined) return next;
+			return 4;
+		}
+		numbers(next){
+			if(next !== undefined) return next;
+			return true;
+		}
+		start(next){
+			if(next !== undefined) return next;
+			return null;
+		}
+		Preview(){
+			const obj = new this.$.$bog_pazzle_board();
 			return obj;
 		}
-		Saved(){
-			const obj = new this.$.$mol_button_minor();
-			(obj.sub) = () => ([(this.Saved_label())]);
+		Image_control(){
+			const obj = new this.$.$bog_pazzle_upload_image();
+			(obj.image_uri) = () => ((this.image_uri()));
+			(obj.picked) = (next) => ((this.picked(next)));
 			return obj;
 		}
-		Help_label(){
-			const obj = new this.$.$mol_text();
-			(obj.text) = () => ("Как играть");
-			return obj;
-		}
-		Help(){
-			const obj = new this.$.$mol_button_minor();
-			(obj.sub) = () => ([(this.Help_label())]);
+		Settings(){
+			const obj = new this.$.$bog_pazzle_settings();
+			(obj.grid_rows) = (next) => ((this.grid_rows(next)));
+			(obj.grid_columns) = (next) => ((this.grid_columns(next)));
+			(obj.numbers) = (next) => ((this.numbers(next)));
 			return obj;
 		}
 		rows(){
-			return [
-				(this.Title()), 
-				(this.New_game()), 
-				(this.Saved()), 
-				(this.Help())
-			];
+			return (this.upload_content());
 		}
 	};
-	($mol_mem(($.$bog_pazzle_menu.prototype), "Title"));
-	($mol_mem(($.$bog_pazzle_menu.prototype), "New_game_label"));
-	($mol_mem(($.$bog_pazzle_menu.prototype), "New_game"));
-	($mol_mem(($.$bog_pazzle_menu.prototype), "Saved_label"));
-	($mol_mem(($.$bog_pazzle_menu.prototype), "Saved"));
-	($mol_mem(($.$bog_pazzle_menu.prototype), "Help_label"));
-	($mol_mem(($.$bog_pazzle_menu.prototype), "Help"));
+	($mol_mem(($.$bog_pazzle_upload.prototype), "Image"));
+	($mol_mem(($.$bog_pazzle_upload.prototype), "Hint"));
+	($mol_mem(($.$bog_pazzle_upload.prototype), "Settings_title"));
+	($mol_mem(($.$bog_pazzle_upload.prototype), "Preview_title"));
+	($mol_mem(($.$bog_pazzle_upload.prototype), "Start"));
+	($mol_mem(($.$bog_pazzle_upload.prototype), "picked"));
+	($mol_mem(($.$bog_pazzle_upload.prototype), "grid_rows"));
+	($mol_mem(($.$bog_pazzle_upload.prototype), "grid_columns"));
+	($mol_mem(($.$bog_pazzle_upload.prototype), "numbers"));
+	($mol_mem(($.$bog_pazzle_upload.prototype), "start"));
+	($mol_mem(($.$bog_pazzle_upload.prototype), "Preview"));
+	($mol_mem(($.$bog_pazzle_upload.prototype), "Image_control"));
+	($mol_mem(($.$bog_pazzle_upload.prototype), "Settings"));
 
 
 ;
 "use strict";
+
 
 ;
 "use strict";
@@ -13251,7 +14315,31 @@ var $;
 (function ($) {
     var $$;
     (function ($$) {
-        $mol_style_define($bog_pazzle_menu, {
+        class $bog_pazzle_upload extends $.$bog_pazzle_upload {
+            upload_content() {
+                const rows = [this.Image()];
+                if (!this.image_uri()) {
+                    rows.push(this.Hint());
+                    return rows;
+                }
+                rows.push(this.Settings_title(), this.Settings(), this.Preview_title(), this.Preview(), this.Start());
+                return rows;
+            }
+        }
+        __decorate([
+            $mol_mem
+        ], $bog_pazzle_upload.prototype, "upload_content", null);
+        $$.$bog_pazzle_upload = $bog_pazzle_upload;
+    })($$ = $.$$ || ($.$$ = {}));
+})($ || ($ = {}));
+
+;
+"use strict";
+var $;
+(function ($) {
+    var $$;
+    (function ($$) {
+        $mol_style_define($bog_pazzle_upload, {
             display: 'flex',
             flexDirection: 'column',
             gap: $mol_gap.block,
@@ -13259,7 +14347,19 @@ var $;
             background: { color: $mol_theme.card },
             border: { radius: $mol_gap.round },
             boxShadow: `0 0 0 1px ${$mol_theme.line}`,
-            minWidth: '14rem',
+            minWidth: 0,
+            Hint: {
+                color: $mol_theme.shade,
+            },
+            Settings_title: {
+                font: { weight: 'bold' },
+            },
+            Preview_title: {
+                font: { weight: 'bold' },
+            },
+            Start: {
+                justifyContent: 'center',
+            },
         });
     })($$ = $.$$ || ($.$$ = {}));
 })($ || ($ = {}));
@@ -13270,32 +14370,21 @@ var $;
 			const obj = new this.$.$bog_pazzle_menu();
 			return obj;
 		}
-		Workspace(){
-			const obj = new this.$.$mol_view();
-			(obj.sub) = () => ([(this.Upload())]);
-			return obj;
-		}
-		Content(){
-			const obj = new this.$.$mol_row();
-			(obj.sub) = () => ([(this.Menu()), (this.Workspace())]);
-			return obj;
-		}
 		Upload(){
 			const obj = new this.$.$bog_pazzle_upload();
 			return obj;
 		}
 		sub(){
-			return [(this.Content())];
+			return [(this.Menu()), (this.Upload())];
 		}
 	};
 	($mol_mem(($.$bog_pazzle_layout.prototype), "Menu"));
-	($mol_mem(($.$bog_pazzle_layout.prototype), "Workspace"));
-	($mol_mem(($.$bog_pazzle_layout.prototype), "Content"));
 	($mol_mem(($.$bog_pazzle_layout.prototype), "Upload"));
 
 
 ;
 "use strict";
+
 
 ;
 "use strict";
@@ -13303,27 +14392,43 @@ var $;
 (function ($) {
     var $$;
     (function ($$) {
+        const { rem } = $mol_style_unit;
         $mol_style_define($bog_pazzle_layout, {
-            Content: {
-                alignItems: 'flex-start',
-                gap: $mol_gap.block,
-            },
-            Menu: {
-                flex: {
-                    basis: '16rem',
-                    grow: 0,
-                    shrink: 0,
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: $mol_gap.block,
+            width: '100%',
+            minWidth: 0,
+            // меню и рабочая область приходят от корня, поэтому адресуем их по классу
+            '>': {
+                $bog_pazzle_menu: {
+                    flex: {
+                        basis: rem(15),
+                        grow: 0,
+                        shrink: 0,
+                    },
+                },
+                $bog_pazzle_upload: {
+                    flex: {
+                        grow: 1,
+                        shrink: 1,
+                        basis: 0,
+                    },
+                    minWidth: 0,
                 },
             },
-            Workspace: {
-                flex: {
-                    grow: 1,
-                    shrink: 1,
-                    basis: 0,
+            '@media': {
+                '(max-width: 45rem)': {
+                    flexDirection: 'column',
+                    alignItems: 'stretch',
+                    '>': {
+                        $bog_pazzle_menu: {
+                            flex: {
+                                basis: 'auto',
+                            },
+                        },
+                    },
                 },
-                display: 'flex',
-                flexDirection: 'column',
-                gap: $mol_gap.block,
             },
         });
     })($$ = $.$$ || ($.$$ = {}));
@@ -13331,50 +14436,84 @@ var $;
 
 ;
 	($.$bog_pazzle_play) = class $bog_pazzle_play extends ($.$mol_view) {
-		Back_label(){
+		Clock(){
 			const obj = new this.$.$mol_text();
-			(obj.text) = () => ("← Назад");
-			return obj;
-		}
-		Back(){
-			const obj = new this.$.$mol_link();
-			(obj.arg) = () => ({"mode": null});
-			(obj.sub) = () => ([(this.Back_label())]);
+			(obj.text) = () => ((this.time()));
 			return obj;
 		}
 		moves_label(){
 			return "";
 		}
-		Moves_text(){
+		Moves(){
 			const obj = new this.$.$mol_text();
 			(obj.text) = () => ((this.moves_label()));
 			return obj;
 		}
-		Toolbar(){
-			const obj = new this.$.$mol_row();
-			(obj.sub) = () => ([(this.Back()), (this.Moves_text())]);
+		Filler(){
+			const obj = new this.$.$mol_view();
 			return obj;
 		}
-		Board(){
-			const obj = new this.$.$bog_pazzle_board();
+		Peek_toggle(){
+			const obj = new this.$.$mol_check_box();
+			(obj.title) = () => ("Оригинал");
+			(obj.hint) = () => ("Показать картинку целиком");
+			(obj.checked) = (next) => ((this.peek(next)));
+			return obj;
+		}
+		Again(){
+			const obj = new this.$.$mol_button_minor();
+			(obj.title) = () => ("Заново");
+			(obj.hint) = () => ("Перемешать и начать партию сначала");
+			(obj.click) = (next) => ((this.again(next)));
+			return obj;
+		}
+		Toolbar(){
+			const obj = new this.$.$mol_view();
+			(obj.sub) = () => ([
+				(this.Clock()), 
+				(this.Moves()), 
+				(this.Filler()), 
+				(this.Peek_toggle()), 
+				(this.Again())
+			]);
 			return obj;
 		}
 		moves(){
 			return 0;
 		}
+		time(){
+			return "";
+		}
+		peek(next){
+			if(next !== undefined) return next;
+			return false;
+		}
+		again(next){
+			if(next !== undefined) return next;
+			return null;
+		}
+		Game(){
+			const obj = new this.$.$bog_pazzle_board();
+			return obj;
+		}
 		sub(){
-			return [(this.Toolbar()), (this.Board())];
+			return [(this.Toolbar()), (this.Game())];
 		}
 	};
-	($mol_mem(($.$bog_pazzle_play.prototype), "Back_label"));
-	($mol_mem(($.$bog_pazzle_play.prototype), "Back"));
-	($mol_mem(($.$bog_pazzle_play.prototype), "Moves_text"));
+	($mol_mem(($.$bog_pazzle_play.prototype), "Clock"));
+	($mol_mem(($.$bog_pazzle_play.prototype), "Moves"));
+	($mol_mem(($.$bog_pazzle_play.prototype), "Filler"));
+	($mol_mem(($.$bog_pazzle_play.prototype), "Peek_toggle"));
+	($mol_mem(($.$bog_pazzle_play.prototype), "Again"));
 	($mol_mem(($.$bog_pazzle_play.prototype), "Toolbar"));
-	($mol_mem(($.$bog_pazzle_play.prototype), "Board"));
+	($mol_mem(($.$bog_pazzle_play.prototype), "peek"));
+	($mol_mem(($.$bog_pazzle_play.prototype), "again"));
+	($mol_mem(($.$bog_pazzle_play.prototype), "Game"));
 
 
 ;
 "use strict";
+
 
 ;
 "use strict";
@@ -13384,12 +14523,9 @@ var $;
     (function ($$) {
         class $bog_pazzle_play extends $.$bog_pazzle_play {
             moves_label() {
-                return `Ходов: ${this.moves()}`;
+                return this.$.$bog_pazzle_store.moves_label(this.moves());
             }
         }
-        __decorate([
-            $mol_mem
-        ], $bog_pazzle_play.prototype, "moves_label", null);
         $$.$bog_pazzle_play = $bog_pazzle_play;
     })($$ = $.$$ || ($.$$ = {}));
 })($ || ($ = {}));
@@ -13400,32 +14536,438 @@ var $;
 (function ($) {
     var $$;
     (function ($$) {
+        const { rem, vh } = $mol_style_unit;
         $mol_style_define($bog_pazzle_play, {
             display: 'flex',
             flexDirection: 'column',
-            flex: {
-                grow: 1,
-                shrink: 1,
-                basis: 0,
-            },
-            alignItems: 'center',
             gap: $mol_gap.block,
-            padding: $mol_gap.block,
+            alignItems: 'stretch',
+            minWidth: 0,
             Toolbar: {
-                alignSelf: 'stretch',
                 display: 'flex',
                 alignItems: 'center',
-                gap: $mol_gap.block,
+                flexWrap: 'wrap',
+                gap: $mol_gap.text,
+                padding: $mol_gap.text,
+                background: { color: $mol_theme.card },
+                border: { radius: $mol_gap.round },
+                boxShadow: `0 0 0 1px ${$mol_theme.line}`,
             },
-            Board: {
+            Clock: {
+                font: {
+                    size: rem(1.25),
+                    weight: 'bold',
+                },
+                padding: $mol_gap.text,
+            },
+            Moves: {
+                color: $mol_theme.shade,
+                padding: $mol_gap.text,
+            },
+            Filler: {
                 flex: {
                     grow: 1,
                     shrink: 1,
                     basis: 0,
                 },
-                maxWidth: '80vh',
-                width: '100%',
             },
+            // доска приходит от корня — адресуем её по классу
+            '>': {
+                $bog_pazzle_board: {
+                    maxWidth: vh(75),
+                    width: '100%',
+                    alignSelf: 'center',
+                    minWidth: 0,
+                },
+            },
+        });
+    })($$ = $.$$ || ($.$$ = {}));
+})($ || ($ = {}));
+
+;
+	($.$mol_icon_delete) = class $mol_icon_delete extends ($.$mol_icon) {
+		path(){
+			return "M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z";
+		}
+	};
+
+
+;
+"use strict";
+
+
+;
+	($.$bog_pazzle_saves_item) = class $bog_pazzle_saves_item extends ($.$mol_view) {
+		open_click(next){
+			if(next !== undefined) return next;
+			return null;
+		}
+		thumb(){
+			return "";
+		}
+		Thumb(){
+			const obj = new this.$.$mol_image();
+			(obj.uri) = () => ((this.thumb()));
+			(obj.title) = () => ("");
+			return obj;
+		}
+		label(){
+			return "";
+		}
+		Label(){
+			const obj = new this.$.$mol_text();
+			(obj.text) = () => ((this.label()));
+			return obj;
+		}
+		stat(){
+			return "";
+		}
+		Stat(){
+			const obj = new this.$.$mol_text();
+			(obj.text) = () => ((this.stat()));
+			return obj;
+		}
+		Info(){
+			const obj = new this.$.$mol_list();
+			(obj.rows) = () => ([(this.Label()), (this.Stat())]);
+			return obj;
+		}
+		Open(){
+			const obj = new this.$.$mol_button_minor();
+			(obj.hint) = () => ("Открыть пазл");
+			(obj.click) = (next) => ((this.open_click(next)));
+			(obj.sub) = () => ([(this.Thumb()), (this.Info())]);
+			return obj;
+		}
+		drop_hint(){
+			return "";
+		}
+		drop_click(next){
+			if(next !== undefined) return next;
+			return null;
+		}
+		confirm(next){
+			if(next !== undefined) return next;
+			return false;
+		}
+		Drop_icon(){
+			const obj = new this.$.$mol_icon_delete();
+			return obj;
+		}
+		Drop(){
+			const obj = new this.$.$mol_button_minor();
+			(obj.hint) = () => ((this.drop_hint()));
+			(obj.click) = (next) => ((this.drop_click(next)));
+			(obj.attr) = () => ({...(this.$.$mol_button_minor.prototype.attr.call(obj)), "bog_pazzle_confirm": (this.confirm())});
+			(obj.sub) = () => ([(this.Drop_icon())]);
+			return obj;
+		}
+		id(){
+			return "";
+		}
+		open(next){
+			if(next !== undefined) return next;
+			return null;
+		}
+		drop(next){
+			if(next !== undefined) return next;
+			return null;
+		}
+		sub(){
+			return [(this.Open()), (this.Drop())];
+		}
+	};
+	($mol_mem(($.$bog_pazzle_saves_item.prototype), "open_click"));
+	($mol_mem(($.$bog_pazzle_saves_item.prototype), "Thumb"));
+	($mol_mem(($.$bog_pazzle_saves_item.prototype), "Label"));
+	($mol_mem(($.$bog_pazzle_saves_item.prototype), "Stat"));
+	($mol_mem(($.$bog_pazzle_saves_item.prototype), "Info"));
+	($mol_mem(($.$bog_pazzle_saves_item.prototype), "Open"));
+	($mol_mem(($.$bog_pazzle_saves_item.prototype), "drop_click"));
+	($mol_mem(($.$bog_pazzle_saves_item.prototype), "confirm"));
+	($mol_mem(($.$bog_pazzle_saves_item.prototype), "Drop_icon"));
+	($mol_mem(($.$bog_pazzle_saves_item.prototype), "Drop"));
+	($mol_mem(($.$bog_pazzle_saves_item.prototype), "open"));
+	($mol_mem(($.$bog_pazzle_saves_item.prototype), "drop"));
+
+
+;
+"use strict";
+
+
+;
+"use strict";
+var $;
+(function ($) {
+    var $$;
+    (function ($$) {
+        class $bog_pazzle_saves_item extends $.$bog_pazzle_saves_item {
+            save() {
+                return this.$.$bog_pazzle_store.save(this.id());
+            }
+            thumb() {
+                return this.$.$bog_pazzle_store.thumb(this.id());
+            }
+            label() {
+                const save = this.save();
+                if (!save)
+                    return '';
+                return save.rows + ' × ' + save.columns + ' · ' + this.$.$bog_pazzle_store.day(save.created);
+            }
+            stat() {
+                const save = this.save();
+                if (!save)
+                    return '';
+                const store = this.$.$bog_pazzle_store;
+                const done = store.moves_label(save.moves) + ' за ' + store.clock(save.elapsed);
+                return save.solved ? 'Собран · ' + done : 'В процессе · ' + done;
+            }
+            open_click(next) {
+                this.open(this.id());
+                return null;
+            }
+            drop_hint() {
+                return this.confirm() ? 'Нажмите ещё раз, чтобы удалить' : 'Удалить';
+            }
+            /** Удаление в два клика — случайно снести собранный пазл обидно. */
+            drop_click(next) {
+                if (!this.confirm()) {
+                    this.confirm(true);
+                    return null;
+                }
+                this.confirm(false);
+                this.drop(this.id());
+                return null;
+            }
+        }
+        __decorate([
+            $mol_action
+        ], $bog_pazzle_saves_item.prototype, "open_click", null);
+        __decorate([
+            $mol_action
+        ], $bog_pazzle_saves_item.prototype, "drop_click", null);
+        $$.$bog_pazzle_saves_item = $bog_pazzle_saves_item;
+    })($$ = $.$$ || ($.$$ = {}));
+})($ || ($ = {}));
+
+;
+"use strict";
+var $;
+(function ($) {
+    var $$;
+    (function ($$) {
+        const { rem } = $mol_style_unit;
+        $mol_style_define($bog_pazzle_saves_item, {
+            display: 'flex',
+            alignItems: 'stretch',
+            gap: $mol_gap.text,
+            padding: $mol_gap.text,
+            background: { color: $mol_theme.card },
+            border: { radius: $mol_gap.round },
+            boxShadow: `0 0 0 1px ${$mol_theme.line}`,
+            Open: {
+                flex: {
+                    grow: 1,
+                    shrink: 1,
+                    basis: 0,
+                },
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-start',
+                gap: $mol_gap.block,
+                minWidth: 0,
+                textAlign: 'start',
+            },
+            Thumb: {
+                width: rem(4),
+                height: rem(4),
+                flex: {
+                    grow: 0,
+                    shrink: 0,
+                },
+                objectFit: 'cover',
+                border: { radius: $mol_gap.round },
+                background: { color: $mol_theme.field },
+            },
+            Info: {
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 0,
+                minWidth: 0,
+            },
+            Label: {
+                font: { weight: 'bold' },
+            },
+            Stat: {
+                color: $mol_theme.shade,
+                font: { size: rem(.875) },
+            },
+            Drop: {
+                flex: {
+                    grow: 0,
+                    shrink: 0,
+                },
+                alignSelf: 'center',
+            },
+        });
+        $mol_style_attach('bog_pazzle_saves_item_confirm', `
+		[bog_pazzle_saves_item_drop][bog_pazzle_confirm="true"] {
+			background: var(--mol_theme_special);
+			color: var(--mol_theme_text);
+		}
+	`);
+    })($$ = $.$$ || ($.$$ = {}));
+})($ || ($ = {}));
+
+;
+	($.$bog_pazzle_saves) = class $bog_pazzle_saves extends ($.$mol_list) {
+		row_id(id){
+			return "";
+		}
+		drop(next){
+			if(next !== undefined) return next;
+			return null;
+		}
+		Empty(){
+			const obj = new this.$.$mol_text();
+			(obj.text) = () => ("Здесь пока пусто. Загрузите картинку — и пазл появится в списке.");
+			return obj;
+		}
+		Create_icon(){
+			const obj = new this.$.$mol_icon_image_plus();
+			return obj;
+		}
+		Create(){
+			const obj = new this.$.$mol_button_major();
+			(obj.hint) = () => ("Собрать пазл из другой картинки");
+			(obj.click) = (next) => ((this.create(next)));
+			(obj.sub) = () => ([(this.Create_icon()), "Новый пазл"]);
+			return obj;
+		}
+		saves_content(){
+			return [(this.Empty()), (this.Create())];
+		}
+		open(next){
+			if(next !== undefined) return next;
+			return null;
+		}
+		create(next){
+			if(next !== undefined) return next;
+			return null;
+		}
+		Row(id){
+			const obj = new this.$.$bog_pazzle_saves_item();
+			(obj.id) = () => ((this.row_id(id)));
+			(obj.open) = (next) => ((this.open(next)));
+			(obj.drop) = (next) => ((this.drop(next)));
+			return obj;
+		}
+		rows(){
+			return (this.saves_content());
+		}
+	};
+	($mol_mem(($.$bog_pazzle_saves.prototype), "drop"));
+	($mol_mem(($.$bog_pazzle_saves.prototype), "Empty"));
+	($mol_mem(($.$bog_pazzle_saves.prototype), "Create_icon"));
+	($mol_mem(($.$bog_pazzle_saves.prototype), "Create"));
+	($mol_mem(($.$bog_pazzle_saves.prototype), "open"));
+	($mol_mem(($.$bog_pazzle_saves.prototype), "create"));
+	($mol_mem_key(($.$bog_pazzle_saves.prototype), "Row"));
+
+
+;
+"use strict";
+
+
+;
+"use strict";
+var $;
+(function ($) {
+    var $$;
+    (function ($$) {
+        class $bog_pazzle_saves extends $.$bog_pazzle_saves {
+            /** Битые записи в список не пускаем — иначе получится карточка-призрак. */
+            ids() {
+                const store = this.$.$bog_pazzle_store;
+                return store.ids().filter(id => !!store.save(id));
+            }
+            row_id(id) { return id; }
+            saves_content() {
+                const ids = this.ids();
+                if (!ids.length)
+                    return [this.Empty(), this.Create()];
+                return [...ids.map(id => this.Row(id)), this.Create()];
+            }
+            drop(next) {
+                if (next)
+                    this.$.$bog_pazzle_store.drop(next);
+                return next;
+            }
+        }
+        __decorate([
+            $mol_mem
+        ], $bog_pazzle_saves.prototype, "saves_content", null);
+        __decorate([
+            $mol_action
+        ], $bog_pazzle_saves.prototype, "drop", null);
+        $$.$bog_pazzle_saves = $bog_pazzle_saves;
+    })($$ = $.$$ || ($.$$ = {}));
+})($ || ($ = {}));
+
+;
+"use strict";
+var $;
+(function ($) {
+    var $$;
+    (function ($$) {
+        $mol_style_define($bog_pazzle_saves, {
+            display: 'flex',
+            flexDirection: 'column',
+            gap: $mol_gap.block,
+            Empty: {
+                color: $mol_theme.shade,
+                padding: $mol_gap.block,
+                textAlign: 'center',
+            },
+            Create: {
+                justifyContent: 'center',
+                gap: $mol_gap.text,
+            },
+        });
+    })($$ = $.$$ || ($.$$ = {}));
+})($ || ($ = {}));
+
+;
+	($.$bog_pazzle_help) = class $bog_pazzle_help extends ($.$mol_list) {
+		Rules(){
+			const obj = new this.$.$mol_text();
+			(obj.text) = () => ("## Как играть\n\n1. Загрузите картинку — подойдёт любое фото с телефона.\n2. Выберите размер сетки: чем больше клеток, тем дольше собирать.\n3. Нажмите «Начать игру».\n\n## Как двигать фрагменты\n\n- **Перетащите** фрагмент на место другого — они поменяются местами.\n- Или **нажмите** на один фрагмент, потом на другой — тот же обмен, удобно на телефоне.\n- Соседние фрагменты, вставшие рядом правильно, **слипаются** и дальше едут вместе.\n- Фрагмент, попавший на своё место, **закрепляется** и больше не двигается.\n\n## Подсказки\n\n- Кнопка «Оригинал» показывает картинку целиком поверх доски.\n- «Заново» перемешивает ту же картинку и обнуляет счёт.\n- Номера фрагментов можно выключить в настройках — так сложнее.\n\n## Что сохраняется\n\nПартия сама записывается в браузер после каждого хода: можно закрыть\nвкладку и вернуться позже. Список начатых пазлов лежит в «Моих пазлах».");
+			return obj;
+		}
+		rows(){
+			return [(this.Rules())];
+		}
+	};
+	($mol_mem(($.$bog_pazzle_help.prototype), "Rules"));
+
+
+;
+"use strict";
+
+
+;
+"use strict";
+var $;
+(function ($) {
+    var $$;
+    (function ($$) {
+        $mol_style_define($bog_pazzle_help, {
+            display: 'flex',
+            flexDirection: 'column',
+            padding: $mol_gap.block,
+            background: { color: $mol_theme.card },
+            border: { radius: $mol_gap.round },
+            boxShadow: `0 0 0 1px ${$mol_theme.line}`,
         });
     })($$ = $.$$ || ($.$$ = {}));
 })($ || ($ = {}));
@@ -13436,96 +14978,272 @@ var $;
 			const obj = new this.$.$bog_theme_auto();
 			return obj;
 		}
-		title(){
-			return "Pazzle";
+		caption(){
+			return "";
 		}
 		Theme_toggle(){
 			const obj = new this.$.$bog_theme_toggle();
 			(obj.theme_auto) = () => ((this.Theme()));
 			return obj;
 		}
-		body_content(){
+		screen(){
 			return [];
 		}
-		Image_control(){
-			const obj = new this.$.$bog_pazzle_upload_image();
-			(obj.image_data) = (next) => ((this.image_data(next)));
-			(obj.image_uri) = () => ((this.image_uri()));
+		Back_icon(){
+			const obj = new this.$.$mol_icon_arrow_left();
 			return obj;
 		}
-		Settings(){
-			const obj = new this.$.$bog_pazzle_settings();
+		resumable(){
+			return false;
+		}
+		saves_count(){
+			return 0;
+		}
+		Menu(){
+			const obj = new this.$.$bog_pazzle_menu();
+			(obj.resumable) = () => ((this.resumable()));
+			(obj.saves_count) = () => ((this.saves_count()));
+			(obj.home) = (next) => ((this.go_home(next)));
+			(obj.play) = (next) => ((this.go_play(next)));
+			(obj.saves) = (next) => ((this.go_saves(next)));
+			(obj.help) = (next) => ((this.go_help(next)));
+			return obj;
+		}
+		draft_image(){
+			return "";
+		}
+		draft_picked(next){
+			if(next !== undefined) return next;
+			return null;
+		}
+		draft_rows(next){
+			if(next !== undefined) return next;
+			return 4;
+		}
+		draft_columns(next){
+			if(next !== undefined) return next;
+			return 4;
+		}
+		draft_numbers(next){
+			if(next !== undefined) return next;
+			return true;
+		}
+		draft_order(){
+			return [];
+		}
+		Preview(){
+			const obj = new this.$.$bog_pazzle_board();
+			(obj.image_uri) = () => ((this.draft_image()));
+			(obj.rows) = () => ((this.draft_rows()));
+			(obj.columns) = () => ((this.draft_columns()));
+			(obj.numbers) = () => ((this.draft_numbers()));
+			(obj.order) = () => ((this.draft_order()));
 			return obj;
 		}
 		Upload(){
 			const obj = new this.$.$bog_pazzle_upload();
-			(obj.Image_control) = () => ((this.Image_control()));
-			(obj.Settings) = () => ((this.Settings()));
-			(obj.Preview) = () => ((this.Board()));
+			(obj.image_uri) = () => ((this.draft_image()));
+			(obj.picked) = (next) => ((this.draft_picked(next)));
+			(obj.grid_rows) = (next) => ((this.draft_rows(next)));
+			(obj.grid_columns) = (next) => ((this.draft_columns(next)));
+			(obj.numbers) = (next) => ((this.draft_numbers(next)));
+			(obj.start) = (next) => ((this.start(next)));
+			(obj.Preview) = () => ((this.Preview()));
 			return obj;
 		}
-		play_moves(){
+		moves(){
 			return 0;
+		}
+		time(){
+			return "";
+		}
+		image(){
+			return "";
+		}
+		rows(){
+			return 1;
+		}
+		columns(){
+			return 1;
+		}
+		numbers(){
+			return false;
+		}
+		order(){
+			return [];
+		}
+		best(){
+			return "";
+		}
+		Game(){
+			const obj = new this.$.$bog_pazzle_board();
+			(obj.playable) = () => (true);
+			(obj.image_uri) = () => ((this.image()));
+			(obj.rows) = () => ((this.rows()));
+			(obj.columns) = () => ((this.columns()));
+			(obj.numbers) = () => ((this.numbers()));
+			(obj.order) = () => ((this.order()));
+			(obj.moves) = () => ((this.moves()));
+			(obj.time) = () => ((this.time()));
+			(obj.best) = () => ((this.best()));
+			(obj.peek) = () => ((this.peek()));
+			(obj.apply) = (next) => ((this.move(next)));
+			(obj.again) = (next) => ((this.again(next)));
+			(obj.home) = (next) => ((this.go_home(next)));
+			(obj.saves) = (next) => ((this.go_saves(next)));
+			return obj;
 		}
 		plugins(){
 			return [(this.Theme())];
 		}
-		head(){
-			return [(this.title()), (this.Theme_toggle())];
+		title(){
+			return (this.caption());
+		}
+		tools(){
+			return [(this.Theme_toggle())];
 		}
 		body(){
-			return (this.body_content());
+			return (this.screen());
 		}
-		image_data(next){
+		Back(){
+			const obj = new this.$.$mol_button_minor();
+			(obj.hint) = () => ("В меню");
+			(obj.click) = (next) => ((this.go_home(next)));
+			(obj.sub) = () => ([(this.Back_icon())]);
+			return obj;
+		}
+		go_home(next){
 			if(next !== undefined) return next;
 			return null;
 		}
-		image_uri(){
-			return "";
+		go_play(next){
+			if(next !== undefined) return next;
+			return null;
 		}
-		rows_count(){
-			return 4;
+		go_saves(next){
+			if(next !== undefined) return next;
+			return null;
 		}
-		columns_count(){
-			return 4;
+		go_help(next){
+			if(next !== undefined) return next;
+			return null;
 		}
-		show_numbers(){
-			return true;
+		start(next){
+			if(next !== undefined) return next;
+			return null;
 		}
-		shuffle_enabled(){
-			return true;
+		again(next){
+			if(next !== undefined) return next;
+			return null;
 		}
-		Board(){
-			const obj = new this.$.$bog_pazzle_board();
-			(obj.image_uri) = () => ((this.image_uri()));
-			(obj.rows) = () => ((this.rows_count()));
-			(obj.columns) = () => ((this.columns_count()));
-			(obj.show_numbers) = () => ((this.show_numbers()));
-			(obj.shuffle_enabled) = () => ((this.shuffle_enabled()));
-			return obj;
+		move(next){
+			if(next !== undefined) return next;
+			return null;
 		}
-		Layout(){
+		open(next){
+			if(next !== undefined) return next;
+			return null;
+		}
+		peek(next){
+			if(next !== undefined) return next;
+			return false;
+		}
+		Home(){
 			const obj = new this.$.$bog_pazzle_layout();
+			(obj.Menu) = () => ((this.Menu()));
 			(obj.Upload) = () => ((this.Upload()));
 			return obj;
 		}
 		Play(){
 			const obj = new this.$.$bog_pazzle_play();
-			(obj.Board) = () => ((this.Board()));
-			(obj.moves) = () => ((this.play_moves()));
+			(obj.moves) = () => ((this.moves()));
+			(obj.time) = () => ((this.time()));
+			(obj.peek) = (next) => ((this.peek(next)));
+			(obj.again) = (next) => ((this.again(next)));
+			(obj.Game) = () => ((this.Game()));
+			return obj;
+		}
+		Saves(){
+			const obj = new this.$.$bog_pazzle_saves();
+			(obj.open) = (next) => ((this.open(next)));
+			(obj.create) = (next) => ((this.go_home(next)));
+			return obj;
+		}
+		Help(){
+			const obj = new this.$.$bog_pazzle_help();
 			return obj;
 		}
 	};
 	($mol_mem(($.$bog_pazzle.prototype), "Theme"));
 	($mol_mem(($.$bog_pazzle.prototype), "Theme_toggle"));
-	($mol_mem(($.$bog_pazzle.prototype), "Image_control"));
-	($mol_mem(($.$bog_pazzle.prototype), "Settings"));
+	($mol_mem(($.$bog_pazzle.prototype), "Back_icon"));
+	($mol_mem(($.$bog_pazzle.prototype), "Menu"));
+	($mol_mem(($.$bog_pazzle.prototype), "draft_picked"));
+	($mol_mem(($.$bog_pazzle.prototype), "draft_rows"));
+	($mol_mem(($.$bog_pazzle.prototype), "draft_columns"));
+	($mol_mem(($.$bog_pazzle.prototype), "draft_numbers"));
+	($mol_mem(($.$bog_pazzle.prototype), "Preview"));
 	($mol_mem(($.$bog_pazzle.prototype), "Upload"));
-	($mol_mem(($.$bog_pazzle.prototype), "image_data"));
-	($mol_mem(($.$bog_pazzle.prototype), "Board"));
-	($mol_mem(($.$bog_pazzle.prototype), "Layout"));
+	($mol_mem(($.$bog_pazzle.prototype), "Game"));
+	($mol_mem(($.$bog_pazzle.prototype), "Back"));
+	($mol_mem(($.$bog_pazzle.prototype), "go_home"));
+	($mol_mem(($.$bog_pazzle.prototype), "go_play"));
+	($mol_mem(($.$bog_pazzle.prototype), "go_saves"));
+	($mol_mem(($.$bog_pazzle.prototype), "go_help"));
+	($mol_mem(($.$bog_pazzle.prototype), "start"));
+	($mol_mem(($.$bog_pazzle.prototype), "again"));
+	($mol_mem(($.$bog_pazzle.prototype), "move"));
+	($mol_mem(($.$bog_pazzle.prototype), "open"));
+	($mol_mem(($.$bog_pazzle.prototype), "peek"));
+	($mol_mem(($.$bog_pazzle.prototype), "Home"));
 	($mol_mem(($.$bog_pazzle.prototype), "Play"));
+	($mol_mem(($.$bog_pazzle.prototype), "Saves"));
+	($mol_mem(($.$bog_pazzle.prototype), "Help"));
 
+
+;
+"use strict";
+var $;
+(function ($) {
+    /** Сторона, в которую вписываем картинку партии. */
+    $.$bog_pazzle_pic_side = 900;
+    /** Сторона миниатюры для списка сохранений. */
+    $.$bog_pazzle_pic_side_thumb = 240;
+    async function $bog_pazzle_pic_make(file) {
+        const uri = this.$mol_dom_context.URL.createObjectURL(file);
+        try {
+            const source = new this.$mol_dom_context.Image();
+            source.src = uri;
+            await source.decode();
+            return {
+                image: this.$bog_pazzle_pic_fit(source, $.$bog_pazzle_pic_side),
+                thumb: this.$bog_pazzle_pic_fit(source, $.$bog_pazzle_pic_side_thumb),
+                width: source.naturalWidth,
+                height: source.naturalHeight,
+            };
+        }
+        finally {
+            this.$mol_dom_context.URL.revokeObjectURL(uri);
+        }
+    }
+    $.$bog_pazzle_pic_make = $bog_pazzle_pic_make;
+    /** Вписывает картинку в квадрат заданной стороны и отдаёт data-uri. */
+    function $bog_pazzle_pic_fit(source, side) {
+        const scale = Math.min(1, side / Math.max(1, source.naturalWidth, source.naturalHeight));
+        const width = Math.max(1, Math.round(source.naturalWidth * scale));
+        const height = Math.max(1, Math.round(source.naturalHeight * scale));
+        const canvas = this.$mol_dom_context.document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext('2d');
+        // jpeg не умеет прозрачность — подкладываем белое, иначе png-шки чернеют
+        context.fillStyle = '#ffffff';
+        context.fillRect(0, 0, width, height);
+        context.drawImage(source, 0, 0, width, height);
+        return canvas.toDataURL('image/jpeg', 0.78);
+    }
+    $.$bog_pazzle_pic_fit = $bog_pazzle_pic_fit;
+})($ || ($ = {}));
 
 ;
 "use strict";
@@ -13550,6 +15268,7 @@ var $;
 ;
 "use strict";
 
+
 ;
 "use strict";
 var $;
@@ -13557,83 +15276,276 @@ var $;
     var $$;
     (function ($$) {
         class $bog_pazzle extends $.$bog_pazzle {
-            image_data(next) {
-                if (next !== undefined)
-                    return next;
+            /** Экран берём из адреса, но на игру пускаем, только если партия жива. */
+            mode() {
+                const mode = this.$.$mol_state_arg.value('mode') ?? '';
+                if (mode === 'play' && !this.image())
+                    return '';
+                if (mode !== 'play' && mode !== 'saves' && mode !== 'help')
+                    return '';
+                return mode;
+            }
+            screen() {
+                switch (this.mode()) {
+                    case 'play': return [this.Play()];
+                    case 'saves': return [this.Saves()];
+                    case 'help': return [this.Help()];
+                    default: return [this.Home()];
+                }
+            }
+            caption() {
+                switch (this.mode()) {
+                    case 'play': return this.rows() + ' × ' + this.columns();
+                    case 'saves': return 'Мои пазлы';
+                    case 'help': return 'Как играть';
+                    default: return 'Пазл';
+                }
+            }
+            head() {
+                return this.mode()
+                    ? [this.Back(), this.Title(), this.Tools()]
+                    : [this.Title(), this.Tools()];
+            }
+            // ——— навигация ———
+            go_home(next) {
+                this.$.$mol_state_arg.go({ mode: null });
                 return null;
             }
-            _blob_uri = null;
-            image_uri() {
-                const data = this.image_data();
-                if (!data) {
-                    if (this._blob_uri) {
-                        URL.revokeObjectURL(this._blob_uri);
-                        this._blob_uri = null;
-                    }
+            go_play(next) {
+                this.$.$mol_state_arg.go({ mode: 'play' });
+                return null;
+            }
+            go_saves(next) {
+                this.$.$mol_state_arg.go({ mode: 'saves' });
+                return null;
+            }
+            go_help(next) {
+                this.$.$mol_state_arg.go({ mode: 'help' });
+                return null;
+            }
+            // ——— текущая партия ———
+            save() {
+                const store = this.$.$bog_pazzle_store;
+                return store.save(store.current());
+            }
+            image() {
+                const store = this.$.$bog_pazzle_store;
+                return store.image(store.current());
+            }
+            rows() { return this.save()?.rows ?? 1; }
+            columns() { return this.save()?.columns ?? 1; }
+            numbers() { return this.save()?.numbers ?? false; }
+            moves() { return this.save()?.moves ?? 0; }
+            order() {
+                return this.save()?.order ?? [];
+            }
+            /** Пока партия идёт, секундомер тикает раз в секунду. */
+            elapsed() {
+                const save = this.save();
+                if (!save)
+                    return 0;
+                const store = this.$.$bog_pazzle_store;
+                if (save.solved || !save.last_at)
+                    return save.elapsed;
+                return save.elapsed + store.gap(save, this.$.$mol_state_time.now(1000));
+            }
+            time() {
+                return this.$.$bog_pazzle_store.clock(this.elapsed());
+            }
+            best() {
+                const save = this.save();
+                if (!save?.best_moves)
                     return '';
+                const store = this.$.$bog_pazzle_store;
+                return 'Лучшее: ' + store.moves_label(save.best_moves) + ' за ' + store.clock(save.best_elapsed);
+            }
+            /** Доска сходила — сохраняем раскладку, добираем время и обновляем рекорд. */
+            move(next) {
+                if (!next)
+                    return null;
+                const store = this.$.$bog_pazzle_store;
+                const id = store.current();
+                const save = store.save(id);
+                if (!save)
+                    return null;
+                const now = Date.now();
+                const elapsed = save.elapsed + store.gap(save, now);
+                const solved = store.assembled(next.order);
+                const record = solved && (!save.best_moves || next.moves < save.best_moves);
+                store.patch(id, {
+                    order: next.order,
+                    moves: next.moves,
+                    elapsed,
+                    last_at: solved ? 0 : now,
+                    solved,
+                    best_moves: record ? next.moves : save.best_moves,
+                    best_elapsed: record ? elapsed : save.best_elapsed,
+                });
+                return next;
+            }
+            again(next) {
+                const store = this.$.$bog_pazzle_store;
+                const id = store.current();
+                const save = store.save(id);
+                if (!save)
+                    return null;
+                store.patch(id, {
+                    order: store.shuffled(save.rows * save.columns),
+                    moves: 0,
+                    elapsed: 0,
+                    last_at: 0,
+                    solved: false,
+                });
+                this.peek(false);
+                return null;
+            }
+            open(next) {
+                if (!next)
+                    return null;
+                this.$.$bog_pazzle_store.current(next);
+                this.peek(false);
+                this.go_play();
+                return next;
+            }
+            // ——— черновик новой партии ———
+            draft() {
+                const store = this.$.$bog_pazzle_store;
+                return store.save(store.draft);
+            }
+            draft_image() {
+                const store = this.$.$bog_pazzle_store;
+                return store.image(store.draft);
+            }
+            draft_rows(next) {
+                if (next === undefined)
+                    return this.draft()?.rows ?? 4;
+                this.draft_patch({ rows: next });
+                return next;
+            }
+            draft_columns(next) {
+                if (next === undefined)
+                    return this.draft()?.columns ?? 4;
+                this.draft_patch({ columns: next });
+                return next;
+            }
+            draft_numbers(next) {
+                if (next === undefined)
+                    return this.draft()?.numbers ?? true;
+                this.draft_patch({ numbers: next });
+                return next;
+            }
+            /** Предпросмотр показывает картинку целой — раскладка тут по порядку. */
+            draft_order() {
+                const count = Math.max(1, this.draft_rows()) * Math.max(1, this.draft_columns());
+                return Array.from({ length: count }, (_, index) => index);
+            }
+            draft_patch(patch) {
+                const store = this.$.$bog_pazzle_store;
+                const prev = this.draft() ?? store.blank(store.draft, 4, 4, true);
+                store.save(store.draft, { ...prev, ...patch, updated: Date.now() });
+            }
+            draft_picked(next) {
+                if (!next)
+                    return null;
+                const store = this.$.$bog_pazzle_store;
+                const pic = this.$.$mol_wire_sync(this.$).$bog_pazzle_pic_make(next);
+                store.spacious(() => {
+                    store.image(store.draft, pic.image);
+                    store.thumb(store.draft, pic.thumb);
+                });
+                this.draft_patch({});
+                return next;
+            }
+            start(next) {
+                if (this.$.$bog_pazzle_store.start()) {
+                    this.peek(false);
+                    this.go_play();
                 }
-                if (!this._blob_uri) {
-                    const buffer = data.buffer instanceof ArrayBuffer
-                        ? data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength)
-                        : data.slice().buffer;
-                    const blob = new Blob([buffer], { type: 'image/*' });
-                    this._blob_uri = URL.createObjectURL(blob);
-                }
-                return this._blob_uri;
+                return null;
             }
-            rows_count() {
-                return this.Settings().rows_count();
+            // ——— меню ———
+            resumable() {
+                const save = this.save();
+                return !!save && !!this.image() && !save.solved;
             }
-            columns_count() {
-                return this.Settings().columns_count();
-            }
-            show_numbers() {
-                return this.Settings().show_numbers();
-            }
-            shuffle_enabled() {
-                return this.Settings().shuffle_enabled();
-            }
-            play_moves() {
-                return this.Board().moves();
-            }
-            mode() {
-                return this.$.$mol_state_arg.value('mode') ?? '';
-            }
-            body_content() {
-                if (this.mode() === 'play' && this.image_uri()) {
-                    return [this.Play()];
-                }
-                return [this.Layout()];
+            saves_count() {
+                return this.$.$bog_pazzle_store.ids().length;
             }
         }
-        __decorate([
-            $mol_mem
-        ], $bog_pazzle.prototype, "image_data", null);
-        __decorate([
-            $mol_mem
-        ], $bog_pazzle.prototype, "image_uri", null);
-        __decorate([
-            $mol_mem
-        ], $bog_pazzle.prototype, "rows_count", null);
-        __decorate([
-            $mol_mem
-        ], $bog_pazzle.prototype, "columns_count", null);
-        __decorate([
-            $mol_mem
-        ], $bog_pazzle.prototype, "show_numbers", null);
-        __decorate([
-            $mol_mem
-        ], $bog_pazzle.prototype, "shuffle_enabled", null);
-        __decorate([
-            $mol_mem
-        ], $bog_pazzle.prototype, "play_moves", null);
         __decorate([
             $mol_mem
         ], $bog_pazzle.prototype, "mode", null);
         __decorate([
             $mol_mem
-        ], $bog_pazzle.prototype, "body_content", null);
+        ], $bog_pazzle.prototype, "screen", null);
+        __decorate([
+            $mol_mem
+        ], $bog_pazzle.prototype, "head", null);
+        __decorate([
+            $mol_action
+        ], $bog_pazzle.prototype, "go_home", null);
+        __decorate([
+            $mol_action
+        ], $bog_pazzle.prototype, "go_play", null);
+        __decorate([
+            $mol_action
+        ], $bog_pazzle.prototype, "go_saves", null);
+        __decorate([
+            $mol_action
+        ], $bog_pazzle.prototype, "go_help", null);
+        __decorate([
+            $mol_mem
+        ], $bog_pazzle.prototype, "elapsed", null);
+        __decorate([
+            $mol_action
+        ], $bog_pazzle.prototype, "move", null);
+        __decorate([
+            $mol_action
+        ], $bog_pazzle.prototype, "again", null);
+        __decorate([
+            $mol_action
+        ], $bog_pazzle.prototype, "open", null);
+        __decorate([
+            $mol_mem
+        ], $bog_pazzle.prototype, "draft_order", null);
+        __decorate([
+            $mol_action
+        ], $bog_pazzle.prototype, "draft_patch", null);
+        __decorate([
+            $mol_action
+        ], $bog_pazzle.prototype, "draft_picked", null);
+        __decorate([
+            $mol_action
+        ], $bog_pazzle.prototype, "start", null);
         $$.$bog_pazzle = $bog_pazzle;
+    })($$ = $.$$ || ($.$$ = {}));
+})($ || ($ = {}));
+
+;
+"use strict";
+var $;
+(function ($) {
+    var $$;
+    (function ($$) {
+        const { rem } = $mol_style_unit;
+        $mol_style_define($bog_pazzle, {
+            Body_content: {
+                maxWidth: rem(60),
+                width: '100%',
+                margin: {
+                    left: 'auto',
+                    right: 'auto',
+                },
+                gap: $mol_gap.block,
+            },
+            Back: {
+                flex: {
+                    grow: 0,
+                    shrink: 0,
+                },
+                alignSelf: 'center',
+            },
+        });
     })($$ = $.$$ || ($.$$ = {}));
 })($ || ($ = {}));
 
@@ -13738,18 +15650,34 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    /**
+     * Argument must be Truthy
+     * @deprecated use $mol_assert_equal instead
+     */
     function $mol_assert_ok(value) {
         if (value)
             return;
         $mol_fail(new Error(`${value} ≠ true`));
     }
     $.$mol_assert_ok = $mol_assert_ok;
+    /**
+     * Argument must be Falsy
+     * @deprecated use $mol_assert_equal instead
+     */
     function $mol_assert_not(value) {
         if (!value)
             return;
         $mol_fail(new Error(`${value} ≠ false`));
     }
     $.$mol_assert_not = $mol_assert_not;
+    /**
+     * Handler must throw an error.
+     * @example
+     * $mol_assert_fail( ()=>{ throw new Error( 'Parse error' ) } ) // Passes because throws error
+     * $mol_assert_fail( ()=>{ throw new Error( 'Parse error' ) } , 'Parse error' ) // Passes because throws right message
+     * $mol_assert_fail( ()=>{ throw new Error( 'Parse error' ) } , Error ) // Passes because throws right class
+     * @see https://mol.hyoo.ru/#!section=docs/=9q9dv3_fgxjsf
+     */
     function $mol_assert_fail(handler, ErrorRight) {
         const fail = $.$mol_fail;
         try {
@@ -13772,10 +15700,18 @@ var $;
         $mol_fail(new Error('Not failed', { cause: { expect: ErrorRight } }));
     }
     $.$mol_assert_fail = $mol_assert_fail;
+    /** @deprecated Use $mol_assert_equal */
     function $mol_assert_like(...args) {
         $mol_assert_equal(...args);
     }
     $.$mol_assert_like = $mol_assert_like;
+    /**
+     * All arguments must not be structural equal to each other.
+     * @example
+     * $mol_assert_unique( 1 , 2 , 3 ) // Passes
+     * $mol_assert_unique( 1 , 1 , 2 ) // Fails because 1 === 1
+     * @see https://mol.hyoo.ru/#!section=docs/=9q9dv3_fgxjsf
+     */
     function $mol_assert_unique(...args) {
         for (let i = 0; i < args.length; ++i) {
             for (let j = 0; j < args.length; ++j) {
@@ -13788,6 +15724,13 @@ var $;
         }
     }
     $.$mol_assert_unique = $mol_assert_unique;
+    /**
+     * All arguments must be structural equal each other.
+     * @example
+     * $mol_assert_like( [1] , [1] , [1] ) // Passes
+     * $mol_assert_like( [1] , [1] , [2] ) // Fails because 1 !== 2
+     * @see https://mol.hyoo.ru/#!section=docs/=9q9dv3_fgxjsf
+     */
     function $mol_assert_equal(...args) {
         for (let i = 1; i < args.length; ++i) {
             if ($mol_compare_deep(args[0], args[i]))
@@ -13844,6 +15787,12 @@ var $;
         'return result without errors'() {
             $mol_assert_equal($mol_try(() => false), false);
         },
+        //'return error if thrown'() {
+        //	
+        //	const error = new Error( '$mol_try test error' )
+        //	$mol_assert_equal( $mol_try( ()=> { throw error } ) , error )
+        //	
+        //} ,
     });
 })($ || ($ = {}));
 
@@ -14346,6 +16295,7 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    /// @todo right orderinng
     $.$mol_after_mock_queue = [];
     function $mol_after_mock_warp() {
         const queue = $.$mol_after_mock_queue.splice(0);
@@ -14731,6 +16681,8 @@ var $;
 
 ;
 "use strict";
+/** @jsx $mol_jsx */
+/** @jsxFrag $mol_jsx_frag */
 var $;
 (function ($) {
     $mol_test({
@@ -14836,6 +16788,7 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    /** Lazy computed lists with native Array interface. $mol_range2_array is mutable but all derived ranges are immutable. */
     function $mol_range2(item = index => index, size = () => Number.POSITIVE_INFINITY) {
         const source = typeof item === 'function' ? new $mol_range2_array() : item;
         if (typeof item !== 'function') {
@@ -14884,6 +16837,7 @@ var $;
     }
     $.$mol_range2 = $mol_range2;
     class $mol_range2_array extends Array {
+        // Lazy
         concat(...tail) {
             if (tail.length === 0)
                 return this;
@@ -14895,6 +16849,7 @@ var $;
             }
             return $mol_range2(index => index < this.length ? this[index] : tail[0][index - this.length], () => this.length + tail[0].length);
         }
+        // Lazy
         filter(check, context) {
             const filtered = [];
             let cursor = -1;
@@ -14907,13 +16862,16 @@ var $;
                 return filtered[index];
             }, () => cursor < this.length ? Number.POSITIVE_INFINITY : filtered.length);
         }
+        // Diligent
         forEach(proceed, context) {
             for (let [key, value] of this.entries())
                 proceed.call(context, value, key, this);
         }
+        // Lazy
         map(proceed, context) {
             return $mol_range2(index => proceed.call(context, this[index], index, this), () => this.length);
         }
+        // Diligent
         reduce(merge, result) {
             let index = 0;
             if (arguments.length === 1) {
@@ -14924,12 +16882,15 @@ var $;
             }
             return result;
         }
+        // Lazy
         toReversed() {
             return $mol_range2(index => this[this.length - 1 - index], () => this.length);
         }
+        // Lazy
         slice(from = 0, to = this.length) {
             return $mol_range2(index => this[from + index], () => Math.min(to, this.length) - from);
         }
+        // Lazy
         some(check, context) {
             for (let index = 0; index < this.length; ++index) {
                 if (check.call(context, this[index], index, this))
@@ -15122,6 +17083,7 @@ var $;
 
 ;
 "use strict";
+/** @jsx $mol_jsx */
 var $;
 (function ($) {
     $mol_test({
@@ -15183,6 +17145,7 @@ var $;
             const obj3_copy = { test: 3, obj2: obj2_copy };
             obj1.obj3 = obj3;
             obj1_copy.obj3 = obj3_copy;
+            // warmup cache
             $mol_assert_not($mol_compare_deep(obj1, {}));
             $mol_assert_not($mol_compare_deep(obj2, {}));
             $mol_assert_not($mol_compare_deep(obj3, {}));
@@ -15253,9 +17216,13 @@ var $;
 
 ;
 "use strict";
+
+;
+"use strict";
 var $;
 (function ($_1) {
     $mol_test({
+        // https://github.com/nin-jin/slides/tree/master/reactivity#component-states
         'Cached channel'($) {
             class App extends $mol_object2 {
                 static $ = $;
@@ -15313,6 +17280,7 @@ var $;
             $mol_assert_equal(App.value(5), 21);
             $mol_assert_equal(App.value(), 21);
         },
+        // https://github.com/nin-jin/slides/tree/master/reactivity#wish-consistency
         'Auto recalculation of cached values'($) {
             class App extends $mol_object2 {
                 static $ = $;
@@ -15340,6 +17308,7 @@ var $;
             App.xxx(5);
             $mol_assert_equal(App.zzz(), 7);
         },
+        // https://github.com/nin-jin/slides/tree/master/reactivity#wish-reasonability
         'Skip recalculation when actually no dependency changes'($) {
             const log = [];
             class App extends $mol_object2 {
@@ -15373,6 +17342,7 @@ var $;
             App.zzz();
             $mol_assert_like(log, ['zzz', 'yyy', 'xxx', 'xxx', 'yyy']);
         },
+        // https://github.com/nin-jin/slides/tree/master/reactivity#flow-auto
         'Flow: Auto'($) {
             class App extends $mol_object2 {
                 static get $() { return $; }
@@ -15410,6 +17380,7 @@ var $;
             $mol_assert_equal(App.result(), 23);
             $mol_assert_equal(App.counter, 4);
         },
+        // https://github.com/nin-jin/slides/tree/master/reactivity#dupes-equality
         'Dupes: Equality'($) {
             let counter = 0;
             class App extends $mol_object2 {
@@ -15433,6 +17404,7 @@ var $;
             App.foo({ numbs: [2] });
             $mol_assert_like(App.bar(), { numbs: [2], count: 2 });
         },
+        // https://github.com/nin-jin/slides/tree/master/reactivity#cycle-fail
         'Cycle: Fail'($) {
             class App extends $mol_object2 {
                 static $ = $;
@@ -15457,6 +17429,29 @@ var $;
             ], App, "test", null);
             App.test();
         },
+        // https://github.com/nin-jin/slides/tree/master/reactivity#wish-stability
+        // 'Update deps on push'( $ ) {
+        // 	class App extends $mol_object2 {
+        // 		static $ = $
+        // 		@ $mol_wire_solo
+        // 		static left( next = false ) {
+        // 			return next
+        // 		}
+        // 		@ $mol_wire_solo
+        // 		static right( next = false ) {
+        // 			return next
+        // 		}
+        // 		@ $mol_wire_solo
+        // 		static res( next?: boolean ) {
+        // 			return this.left( next ) && this.right()
+        // 		}
+        // 	}
+        // 	$mol_assert_equal( App.res(), false )
+        // 	$mol_assert_equal( App.res( true ), false )
+        // 	$mol_assert_equal( App.right( true ), true )
+        // 	$mol_assert_equal( App.res(), true )
+        // } ,
+        // https://github.com/nin-jin/slides/tree/master/reactivity#wish-stability
         'Different order of pull and push'($) {
             class App extends $mol_object2 {
                 static $ = $;
@@ -15468,7 +17463,7 @@ var $;
                 }
                 static slow(next) {
                     if (next !== undefined)
-                        this.slow();
+                        this.slow(); // enforce pull before push
                     return this.store(next);
                 }
             }
@@ -15487,6 +17482,7 @@ var $;
             App.store(777);
             $mol_assert_equal(App.fast(), App.slow(), 777);
         },
+        // https://github.com/nin-jin/slides/tree/master/reactivity#wish-stability
         'Actions inside invariant'($) {
             class App extends $mol_object2 {
                 static $ = $;
@@ -15526,6 +17522,7 @@ var $;
                 static toggle() {
                     const prev = this.checked();
                     $mol_assert_unique(this.checked(!prev), prev);
+                    // $mol_assert_equal( this.checked() , prev )
                 }
                 static res() {
                     return this.checked();
@@ -15550,6 +17547,39 @@ var $;
             ], App, "test", null);
             await $mol_wire_async(App).test();
         },
+        // // https://github.com/nin-jin/slides/tree/master/reactivity#wish-stability
+        // 'Stable order of multiple root'( $ ) {
+        // 	class App extends $mol_object2 {
+        // 		static $ = $
+        // 		static counter = 0
+        // 		@ $mol_wire_solo
+        // 		static left_trigger( next = 0 ) {
+        // 			return next
+        // 		}
+        // 		@ $mol_wire_solo
+        // 		static left_root() {
+        // 			this.left_trigger()
+        // 			return ++ this.counter
+        // 		}
+        // 		@ $mol_wire_solo
+        // 		static right_trigger( next = 0 ) {
+        // 			return next
+        // 		}
+        // 		@ $mol_wire_solo
+        // 		static right_root() {
+        // 			this.right_trigger()
+        // 			return ++ this.counter
+        // 		}
+        // 	}
+        // 	$mol_assert_equal( App.left_root(), 1 )
+        // 	$mol_assert_equal( App.right_root(), 2 )
+        // 	App.right_trigger( 1 )
+        // 	App.left_trigger( 1 )
+        // 	$mol_wire_fiber.sync()
+        // 	$mol_assert_equal( App.right_root(), 4 )
+        // 	$mol_assert_equal( App.left_root(), 3 )
+        // } ,
+        // https://github.com/nin-jin/slides/tree/master/reactivity#error-store
         'Restore after error'($) {
             class App extends $mol_object2 {
                 static get $() { return $; }
@@ -15647,6 +17677,7 @@ var $;
             App.showing(true);
             $mol_assert_unique(App.render(), details);
         },
+        // https://github.com/nin-jin/slides/tree/master/reactivity#wish-stability
         async 'Hold pubs while wait async task'($) {
             class App extends $mol_object2 {
                 static $ = $;
@@ -16005,6 +18036,7 @@ var $;
 
 ;
 "use strict";
+/** @jsx $mol_jsx */
 var $;
 (function ($) {
     $mol_test({
@@ -16086,6 +18118,7 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    /** Watch and logs reactive states. Logger automatically added to test bundle which is adding to `test.html`. */
     class $mol_wire_log extends $mol_object2 {
         static watch(task) {
             return task;
@@ -16167,6 +18200,9 @@ var $;
         },
     });
 })($ || ($ = {}));
+
+;
+"use strict";
 
 ;
 "use strict";
@@ -16281,472 +18317,6 @@ var $;
 
 ;
 "use strict";
-var $;
-(function ($) {
-    class $mol_style_sheet_test1 extends $mol_view {
-        Item() { return new $mol_view; }
-    }
-    $.$mol_style_sheet_test1 = $mol_style_sheet_test1;
-    class $mol_style_sheet_test2 extends $mol_view {
-        List() { return new $mol_style_sheet_test1; }
-    }
-    $.$mol_style_sheet_test2 = $mol_style_sheet_test2;
-    $mol_test({
-        'component block styles'() {
-            class $mol_style_sheet_test extends $mol_view {
-            }
-            const sheet = $mol_style_sheet($mol_style_sheet_test, {
-                display: 'block',
-                zIndex: 1,
-            });
-            $mol_assert_equal(sheet, '[mol_style_sheet_test] {\n\tdisplay: block;\n\tz-index: 1;\n}\n');
-        },
-        'various units'() {
-            class $mol_style_sheet_test extends $mol_view {
-            }
-            const sheet = $mol_style_sheet($mol_style_sheet_test, {
-                width: '50%',
-                height: '50px',
-            });
-            $mol_assert_equal(sheet, '[mol_style_sheet_test] {\n\twidth: 50%;\n\theight: 50px;\n}\n');
-        },
-        'various functions'() {
-            class $mol_style_sheet_test extends $mol_view {
-            }
-            const { calc } = $mol_style_func;
-            const sheet = $mol_style_sheet($mol_style_sheet_test, {
-                width: calc(`100% - 1px`),
-            });
-            $mol_assert_equal(sheet, '[mol_style_sheet_test] {\n\twidth: calc(100% - 1px);\n}\n');
-        },
-        'property groups'() {
-            class $mol_style_sheet_test extends $mol_view {
-            }
-            const sheet = $mol_style_sheet($mol_style_sheet_test, {
-                flex: {
-                    grow: 5,
-                    shrink: 10,
-                }
-            });
-            $mol_assert_equal(sheet, '[mol_style_sheet_test] {\n\tflex-grow: 5;\n\tflex-shrink: 10;\n}\n');
-        },
-        'custom properties'() {
-            class $mol_style_sheet_test extends $mol_view {
-            }
-            const sheet = $mol_style_sheet($mol_style_sheet_test, {
-                '--isVariable': 'yes',
-                '--is_variable': 'no',
-            });
-            $mol_assert_equal(sheet, '[mol_style_sheet_test] {\n\t--is-variable: yes;\n\t--is_variable: no;\n}\n');
-        },
-        'custom property groups'() {
-            class $mol_style_sheet_test extends $mol_view {
-            }
-            const sheet = $mol_style_sheet($mol_style_sheet_test, {
-                '--variable': {
-                    test1: '5px',
-                    test2: '10px',
-                },
-            });
-            $mol_assert_equal(sheet, '[mol_style_sheet_test] {\n\t--variable-test1: 5px;\n\t--variable-test2: 10px;\n}\n');
-        },
-        'property shorthand'() {
-            class $mol_style_sheet_test extends $mol_view {
-            }
-            const sheet = $mol_style_sheet($mol_style_sheet_test, {
-                padding: ['5px', 'auto'],
-                margin: ['10px', 'auto'],
-            });
-            $mol_assert_equal(sheet, '[mol_style_sheet_test] {\n\tpadding: 5px auto;\n\tmargin: 10px auto;\n}\n');
-        },
-        'sequenced values'() {
-            class $mol_style_sheet_test extends $mol_view {
-            }
-            const { url } = $mol_style_func;
-            const sheet = $mol_style_sheet($mol_style_sheet_test, {
-                background: {
-                    image: [[url('foo')], [url('bar')]],
-                    size: [['cover'], ['contain']],
-                },
-            });
-            $mol_assert_equal(sheet, '[mol_style_sheet_test] {\n\tbackground-image: url("foo"),url("bar");\n\tbackground-size: cover,contain;\n}\n');
-        },
-        'sequenced structs'() {
-            class $mol_style_sheet_test extends $mol_view {
-            }
-            const sheet = $mol_style_sheet($mol_style_sheet_test, {
-                box: {
-                    shadow: [
-                        {
-                            inset: true,
-                            x: 0,
-                            y: 0,
-                            blur: '0.5rem',
-                            spread: 0,
-                            color: 'red',
-                        },
-                        {
-                            inset: false,
-                            x: 0,
-                            y: 0,
-                            blur: '0.5rem',
-                            spread: 0,
-                            color: 'blue',
-                        },
-                    ],
-                },
-            });
-            $mol_assert_equal(sheet, '[mol_style_sheet_test] {\n\tbox-shadow: inset 0 0 0.5rem 0 red,0 0 0.5rem 0 blue;\n}\n');
-        },
-        'component block styles with pseudo class'() {
-            class $mol_style_sheet_test extends $mol_view {
-            }
-            const sheet = $mol_style_sheet($mol_style_sheet_test, {
-                color: 'red',
-                ':focus': {
-                    display: 'block',
-                },
-            });
-            $mol_assert_equal(sheet, '[mol_style_sheet_test] {\n\tcolor: red;\n}\n[mol_style_sheet_test]:focus {\n\tdisplay: block;\n}\n');
-        },
-        'component block styles with pseudo element'() {
-            class $mol_style_sheet_test extends $mol_view {
-            }
-            const sheet = $mol_style_sheet($mol_style_sheet_test, {
-                color: 'red',
-                '::first-line': {
-                    display: 'block',
-                },
-            });
-            $mol_assert_equal(sheet, '[mol_style_sheet_test] {\n\tcolor: red;\n}\n[mol_style_sheet_test]::first-line {\n\tdisplay: block;\n}\n');
-        },
-        'component block styles with media query'() {
-            class $mol_style_sheet_test extends $mol_view {
-            }
-            const sheet = $mol_style_sheet($mol_style_sheet_test, {
-                color: 'red',
-                '@media': {
-                    'print': {
-                        display: 'block',
-                    },
-                    '(max-width: 640px)': {
-                        display: 'inline',
-                    },
-                },
-            });
-            $mol_assert_equal(sheet, '[mol_style_sheet_test] {\n\tcolor: red;\n}\n@media print {\n[mol_style_sheet_test] {\n\tdisplay: block;\n}\n}\n@media (max-width: 640px) {\n[mol_style_sheet_test] {\n\tdisplay: inline;\n}\n}\n');
-        },
-        'component block styles with attribute value'() {
-            class $mol_style_sheet_test extends $mol_view {
-                attr() {
-                    return {
-                        mol_theme: '$mol_theme_dark'
-                    };
-                }
-            }
-            const sheet = $mol_style_sheet($mol_style_sheet_test, {
-                color: 'red',
-                '@': {
-                    mol_theme: {
-                        '$mol_theme_dark': {
-                            display: 'block',
-                        },
-                    },
-                    disabled: {
-                        'true': {
-                            width: '100%',
-                        },
-                    },
-                },
-            });
-            $mol_assert_equal(sheet, '[mol_style_sheet_test] {\n\tcolor: red;\n}\n[mol_style_sheet_test]:where([mol_theme="$mol_theme_dark"]) {\n\tdisplay: block;\n}\n[mol_style_sheet_test]:where([disabled="true"]) {\n\twidth: 100%;\n}\n');
-        },
-        'component block styles with attribute value (short syntax)'() {
-            class $mol_style_sheet_test extends $mol_view {
-                attr() {
-                    return {
-                        mol_theme: '$mol_theme_dark'
-                    };
-                }
-            }
-            const sheet = $mol_style_sheet($mol_style_sheet_test, {
-                color: 'red',
-                '[mol_theme]': {
-                    '$mol_theme_dark': {
-                        display: 'block',
-                    },
-                },
-                '[disabled]': {
-                    'true': {
-                        width: '100%',
-                    },
-                    'false': {
-                        width: '50%',
-                    },
-                },
-            });
-            $mol_assert_equal(sheet, '[mol_style_sheet_test] {\n\tcolor: red;\n}\n[mol_style_sheet_test]:where([mol_theme="$mol_theme_dark"]) {\n\tdisplay: block;\n}\n[mol_style_sheet_test]:where([disabled="true"]) {\n\twidth: 100%;\n}\n[mol_style_sheet_test]:where([disabled="false"]) {\n\twidth: 50%;\n}\n');
-        },
-        'component element styles'() {
-            class $mol_style_sheet_test extends $mol_view {
-                Item() { return new $mol_view; }
-            }
-            const sheet = $mol_style_sheet($mol_style_sheet_test, {
-                color: 'red',
-                Item: {
-                    display: 'block',
-                },
-            });
-            $mol_assert_equal(sheet, '[mol_style_sheet_test] {\n\tcolor: red;\n}\n[mol_style_sheet_test_item] {\n\tdisplay: block;\n}\n');
-        },
-        'component element of element styles'() {
-            const sheet = $mol_style_sheet($mol_style_sheet_test2, {
-                width: '100%',
-                List: {
-                    color: 'red',
-                    Item: {
-                        display: 'block',
-                    },
-                },
-            });
-            $mol_assert_equal(sheet, '[mol_style_sheet_test2] {\n\twidth: 100%;\n}\n[mol_style_sheet_test2_list] {\n\tcolor: red;\n}\n[mol_style_sheet_test2_list_item] {\n\tdisplay: block;\n}\n');
-        },
-        'component element styles with block attribute value'() {
-            class $mol_style_sheet_test extends $mol_view {
-                Item() { return new $mol_view; }
-                attr() {
-                    return {
-                        mol_theme: '$mol_theme_dark',
-                        disabled: true,
-                    };
-                }
-            }
-            const sheet = $mol_style_sheet($mol_style_sheet_test, {
-                '@': {
-                    mol_theme: {
-                        '$mol_theme_dark': {
-                            Item: {
-                                color: 'red',
-                            },
-                        },
-                    },
-                },
-            });
-            $mol_assert_equal(sheet, '[mol_style_sheet_test]:where([mol_theme="$mol_theme_dark"]) :where([mol_style_sheet_test_item]) {\n\tcolor: red;\n}\n');
-        },
-        'inner component styles by class'() {
-            const sheet = $mol_style_sheet($mol_style_sheet_test2, {
-                color: 'red',
-                $mol_style_sheet_test1: {
-                    display: 'block',
-                },
-            });
-            $mol_assert_equal(sheet, '[mol_style_sheet_test2] {\n\tcolor: red;\n}\n[mol_style_sheet_test2] :where([mol_style_sheet_test1]) {\n\tdisplay: block;\n}\n');
-        },
-        'child component styles by class'() {
-            const sheet = $mol_style_sheet($mol_style_sheet_test2, {
-                color: 'red',
-                '>': {
-                    $mol_style_sheet_test1: {
-                        display: 'block',
-                    },
-                    $mol_style_sheet_test2: {
-                        display: 'inline',
-                    },
-                },
-            });
-            $mol_assert_equal(sheet, '[mol_style_sheet_test2] {\n\tcolor: red;\n}\n[mol_style_sheet_test2] > :where([mol_style_sheet_test1]) {\n\tdisplay: block;\n}\n[mol_style_sheet_test2] > :where([mol_style_sheet_test2]) {\n\tdisplay: inline;\n}\n');
-        },
-    });
-})($ || ($ = {}));
-
-;
-"use strict";
-
-;
-"use strict";
-var $;
-(function ($) {
-    class TestClass extends Uint8Array {
-    }
-    $mol_test({
-        'Uint8Array vs itself'() {
-            $mol_assert_ok($mol_compare_array(new Uint8Array, new Uint8Array));
-            $mol_assert_ok($mol_compare_array(new Uint8Array([0]), new Uint8Array([0])));
-            $mol_assert_not($mol_compare_array(new Uint8Array([0]), new Uint8Array([1])));
-        },
-        'Uint8Array vs subclassed array'() {
-            $mol_assert_not($mol_compare_array(new Uint8Array, new TestClass));
-        },
-    });
-})($ || ($ = {}));
-
-;
-"use strict";
-var $;
-(function ($) {
-    $mol_test({
-        'decode utf8 string'() {
-            const str = 'Hello, ΧΨΩЫ';
-            const encoded = new Uint8Array([72, 101, 108, 108, 111, 44, 32, 206, 167, 206, 168, 206, 169, 208, 171]);
-            $mol_assert_equal($mol_charset_decode(encoded), str);
-            $mol_assert_equal($mol_charset_decode(encoded, 'utf8'), str);
-        },
-        'decode empty string'() {
-            const encoded = new Uint8Array([]);
-            $mol_assert_equal($mol_charset_decode(encoded), '');
-        },
-    });
-})($ || ($ = {}));
-
-;
-"use strict";
-var $;
-(function ($) {
-    $mol_test({
-        'encode empty'() {
-            $mol_assert_equal($mol_charset_encode(''), new Uint8Array([]));
-        },
-        'encode 1 octet'() {
-            $mol_assert_equal($mol_charset_encode('F'), new Uint8Array([0x46]));
-        },
-        'encode 2 octet'() {
-            $mol_assert_equal($mol_charset_encode('Б'), new Uint8Array([0xd0, 0x91]));
-        },
-        'encode 3 octet'() {
-            $mol_assert_equal($mol_charset_encode('ह'), new Uint8Array([0xe0, 0xa4, 0xb9]));
-        },
-        'encode 4 octet'() {
-            $mol_assert_equal($mol_charset_encode('𐍈'), new Uint8Array([0xf0, 0x90, 0x8d, 0x88]));
-        },
-        'encode surrogate pair'() {
-            $mol_assert_equal($mol_charset_encode('😀'), new Uint8Array([0xf0, 0x9f, 0x98, 0x80]));
-        },
-    });
-})($ || ($ = {}));
-
-;
-"use strict";
-var $;
-(function ($) {
-    $mol_test({
-        'local get set delete'() {
-            var key = '$mol_state_local_test:' + Math.random();
-            $mol_assert_equal($mol_state_local.value(key), null);
-            $mol_state_local.value(key, 123);
-            $mol_assert_equal($mol_state_local.value(key), 123);
-            $mol_state_local.value(key, null);
-            $mol_assert_equal($mol_state_local.value(key), null);
-        },
-    });
-})($ || ($ = {}));
-
-;
-"use strict";
-var $;
-(function ($) {
-    $mol_test_mocks.push(context => {
-        class $mol_state_local_mock extends $mol_state_local {
-            static state = {};
-            static value(key, next = this.state[key]) {
-                return this.state[key] = (next || null);
-            }
-        }
-        __decorate([
-            $mol_mem_key
-        ], $mol_state_local_mock, "value", null);
-        context.$mol_state_local = $mol_state_local_mock;
-    });
-})($ || ($ = {}));
-
-;
-"use strict";
-var $;
-(function ($) {
-    $mol_test_mocks.push(context => {
-        class $mol_state_arg_mock extends $mol_state_arg {
-            static $ = context;
-            static href(next) { return next || ''; }
-            static go(next) {
-                this.href(this.link(next));
-            }
-        }
-        __decorate([
-            $mol_mem
-        ], $mol_state_arg_mock, "href", null);
-        __decorate([
-            $mol_action
-        ], $mol_state_arg_mock, "go", null);
-        context.$mol_state_arg = $mol_state_arg_mock;
-    });
-})($ || ($ = {}));
-
-;
-"use strict";
-var $;
-(function ($_1) {
-    $mol_test_mocks.push($ => {
-        class $mol_locale_mock extends $mol_locale {
-            lang(next = 'en') { return next; }
-            static source(lang) {
-                return {};
-            }
-        }
-        __decorate([
-            $mol_mem
-        ], $mol_locale_mock.prototype, "lang", null);
-        __decorate([
-            $mol_mem_key
-        ], $mol_locale_mock, "source", null);
-        $.$mol_locale = $mol_locale_mock;
-    });
-})($ || ($ = {}));
-
-;
-"use strict";
-var $;
-(function ($_1) {
-    var $$;
-    (function ($$) {
-        $mol_test({
-            'handle clicks by default'($) {
-                let clicked = false;
-                const clicker = $mol_button.make({
-                    $,
-                    click: (event) => { clicked = true; },
-                });
-                const element = clicker.dom_tree();
-                const event = $mol_dom_context.document.createEvent('mouseevent');
-                event.initEvent('click', true, true);
-                element.dispatchEvent(event);
-                $mol_assert_ok(clicked);
-            },
-            'no handle clicks if disabled'($) {
-                let clicked = false;
-                const clicker = $mol_button.make({
-                    $,
-                    click: (event) => { clicked = true; },
-                    enabled: () => false,
-                });
-                const element = clicker.dom_tree();
-                const event = $mol_dom_context.document.createEvent('mouseevent');
-                event.initEvent('click', true, true);
-                element.dispatchEvent(event);
-                $mol_assert_not(clicked);
-            },
-            async 'Store error'($) {
-                const clicker = $mol_button.make({
-                    $,
-                    click: (event) => $.$mol_fail(new Error('Test error')),
-                });
-                const event = $mol_dom_context.document.createEvent('mouseevent');
-                $mol_assert_fail(() => clicker.event_activate(event), 'Test error');
-                await Promise.resolve();
-                $mol_assert_equal(clicker.status()[0].message, 'Test error');
-            },
-        });
-    })($$ = $_1.$$ || ($_1.$$ = {}));
-})($ || ($ = {}));
 
 ;
 "use strict";
@@ -17090,6 +18660,287 @@ var $;
 "use strict";
 var $;
 (function ($) {
+    class $mol_style_sheet_test1 extends $mol_view {
+        Item() { return new $mol_view; }
+    }
+    $.$mol_style_sheet_test1 = $mol_style_sheet_test1;
+    class $mol_style_sheet_test2 extends $mol_view {
+        List() { return new $mol_style_sheet_test1; }
+    }
+    $.$mol_style_sheet_test2 = $mol_style_sheet_test2;
+    $mol_test({
+        'component block styles'() {
+            class $mol_style_sheet_test extends $mol_view {
+            }
+            const sheet = $mol_style_sheet($mol_style_sheet_test, {
+                display: 'block',
+                zIndex: 1,
+            });
+            $mol_assert_equal(sheet, '[mol_style_sheet_test] {\n\tdisplay: block;\n\tz-index: 1;\n}\n');
+        },
+        'various units'() {
+            class $mol_style_sheet_test extends $mol_view {
+            }
+            const sheet = $mol_style_sheet($mol_style_sheet_test, {
+                width: '50%',
+                height: '50px',
+            });
+            $mol_assert_equal(sheet, '[mol_style_sheet_test] {\n\twidth: 50%;\n\theight: 50px;\n}\n');
+        },
+        'various functions'() {
+            class $mol_style_sheet_test extends $mol_view {
+            }
+            const { calc } = $mol_style_func;
+            const sheet = $mol_style_sheet($mol_style_sheet_test, {
+                width: calc(`100% - 1px`),
+            });
+            $mol_assert_equal(sheet, '[mol_style_sheet_test] {\n\twidth: calc(100% - 1px);\n}\n');
+        },
+        'property groups'() {
+            class $mol_style_sheet_test extends $mol_view {
+            }
+            const sheet = $mol_style_sheet($mol_style_sheet_test, {
+                flex: {
+                    grow: 5,
+                    shrink: 10,
+                }
+            });
+            $mol_assert_equal(sheet, '[mol_style_sheet_test] {\n\tflex-grow: 5;\n\tflex-shrink: 10;\n}\n');
+        },
+        'custom properties'() {
+            class $mol_style_sheet_test extends $mol_view {
+            }
+            const sheet = $mol_style_sheet($mol_style_sheet_test, {
+                '--isVariable': 'yes',
+                '--is_variable': 'no',
+            });
+            $mol_assert_equal(sheet, '[mol_style_sheet_test] {\n\t--is-variable: yes;\n\t--is_variable: no;\n}\n');
+        },
+        'custom property groups'() {
+            class $mol_style_sheet_test extends $mol_view {
+            }
+            const sheet = $mol_style_sheet($mol_style_sheet_test, {
+                '--variable': {
+                    test1: '5px',
+                    test2: '10px',
+                },
+            });
+            $mol_assert_equal(sheet, '[mol_style_sheet_test] {\n\t--variable-test1: 5px;\n\t--variable-test2: 10px;\n}\n');
+        },
+        'property shorthand'() {
+            class $mol_style_sheet_test extends $mol_view {
+            }
+            const sheet = $mol_style_sheet($mol_style_sheet_test, {
+                padding: ['5px', 'auto'],
+                margin: ['10px', 'auto'],
+            });
+            $mol_assert_equal(sheet, '[mol_style_sheet_test] {\n\tpadding: 5px auto;\n\tmargin: 10px auto;\n}\n');
+        },
+        'sequenced values'() {
+            class $mol_style_sheet_test extends $mol_view {
+            }
+            const { url } = $mol_style_func;
+            const sheet = $mol_style_sheet($mol_style_sheet_test, {
+                background: {
+                    image: [[url('foo')], [url('bar')]],
+                    size: [['cover'], ['contain']],
+                },
+            });
+            $mol_assert_equal(sheet, '[mol_style_sheet_test] {\n\tbackground-image: url("foo"),url("bar");\n\tbackground-size: cover,contain;\n}\n');
+        },
+        'sequenced structs'() {
+            class $mol_style_sheet_test extends $mol_view {
+            }
+            const sheet = $mol_style_sheet($mol_style_sheet_test, {
+                box: {
+                    shadow: [
+                        {
+                            inset: true,
+                            x: 0,
+                            y: 0,
+                            blur: '0.5rem',
+                            spread: 0,
+                            color: 'red',
+                        },
+                        {
+                            inset: false,
+                            x: 0,
+                            y: 0,
+                            blur: '0.5rem',
+                            spread: 0,
+                            color: 'blue',
+                        },
+                    ],
+                },
+            });
+            $mol_assert_equal(sheet, '[mol_style_sheet_test] {\n\tbox-shadow: inset 0 0 0.5rem 0 red,0 0 0.5rem 0 blue;\n}\n');
+        },
+        'component block styles with pseudo class'() {
+            class $mol_style_sheet_test extends $mol_view {
+            }
+            const sheet = $mol_style_sheet($mol_style_sheet_test, {
+                color: 'red',
+                ':focus': {
+                    display: 'block',
+                },
+            });
+            $mol_assert_equal(sheet, '[mol_style_sheet_test] {\n\tcolor: red;\n}\n[mol_style_sheet_test]:focus {\n\tdisplay: block;\n}\n');
+        },
+        'component block styles with pseudo element'() {
+            class $mol_style_sheet_test extends $mol_view {
+            }
+            const sheet = $mol_style_sheet($mol_style_sheet_test, {
+                color: 'red',
+                '::first-line': {
+                    display: 'block',
+                },
+            });
+            $mol_assert_equal(sheet, '[mol_style_sheet_test] {\n\tcolor: red;\n}\n[mol_style_sheet_test]::first-line {\n\tdisplay: block;\n}\n');
+        },
+        'component block styles with media query'() {
+            class $mol_style_sheet_test extends $mol_view {
+            }
+            const sheet = $mol_style_sheet($mol_style_sheet_test, {
+                color: 'red',
+                '@media': {
+                    'print': {
+                        display: 'block',
+                    },
+                    '(max-width: 640px)': {
+                        display: 'inline',
+                    },
+                },
+            });
+            $mol_assert_equal(sheet, '[mol_style_sheet_test] {\n\tcolor: red;\n}\n@media print {\n[mol_style_sheet_test] {\n\tdisplay: block;\n}\n}\n@media (max-width: 640px) {\n[mol_style_sheet_test] {\n\tdisplay: inline;\n}\n}\n');
+        },
+        'component block styles with attribute value'() {
+            class $mol_style_sheet_test extends $mol_view {
+                attr() {
+                    return {
+                        mol_theme: '$mol_theme_dark'
+                    };
+                }
+            }
+            const sheet = $mol_style_sheet($mol_style_sheet_test, {
+                color: 'red',
+                '@': {
+                    mol_theme: {
+                        '$mol_theme_dark': {
+                            display: 'block',
+                        },
+                    },
+                    disabled: {
+                        'true': {
+                            width: '100%',
+                        },
+                    },
+                },
+            });
+            $mol_assert_equal(sheet, '[mol_style_sheet_test] {\n\tcolor: red;\n}\n[mol_style_sheet_test]:where([mol_theme="$mol_theme_dark"]) {\n\tdisplay: block;\n}\n[mol_style_sheet_test]:where([disabled="true"]) {\n\twidth: 100%;\n}\n');
+        },
+        'component block styles with attribute value (short syntax)'() {
+            class $mol_style_sheet_test extends $mol_view {
+                attr() {
+                    return {
+                        mol_theme: '$mol_theme_dark'
+                    };
+                }
+            }
+            const sheet = $mol_style_sheet($mol_style_sheet_test, {
+                color: 'red',
+                '[mol_theme]': {
+                    '$mol_theme_dark': {
+                        display: 'block',
+                    },
+                },
+                '[disabled]': {
+                    'true': {
+                        width: '100%',
+                    },
+                    'false': {
+                        width: '50%',
+                    },
+                },
+            });
+            $mol_assert_equal(sheet, '[mol_style_sheet_test] {\n\tcolor: red;\n}\n[mol_style_sheet_test]:where([mol_theme="$mol_theme_dark"]) {\n\tdisplay: block;\n}\n[mol_style_sheet_test]:where([disabled="true"]) {\n\twidth: 100%;\n}\n[mol_style_sheet_test]:where([disabled="false"]) {\n\twidth: 50%;\n}\n');
+        },
+        'component element styles'() {
+            class $mol_style_sheet_test extends $mol_view {
+                Item() { return new $mol_view; }
+            }
+            const sheet = $mol_style_sheet($mol_style_sheet_test, {
+                color: 'red',
+                Item: {
+                    display: 'block',
+                },
+            });
+            $mol_assert_equal(sheet, '[mol_style_sheet_test] {\n\tcolor: red;\n}\n[mol_style_sheet_test_item] {\n\tdisplay: block;\n}\n');
+        },
+        'component element of element styles'() {
+            const sheet = $mol_style_sheet($mol_style_sheet_test2, {
+                width: '100%',
+                List: {
+                    color: 'red',
+                    Item: {
+                        display: 'block',
+                    },
+                },
+            });
+            $mol_assert_equal(sheet, '[mol_style_sheet_test2] {\n\twidth: 100%;\n}\n[mol_style_sheet_test2_list] {\n\tcolor: red;\n}\n[mol_style_sheet_test2_list_item] {\n\tdisplay: block;\n}\n');
+        },
+        'component element styles with block attribute value'() {
+            class $mol_style_sheet_test extends $mol_view {
+                Item() { return new $mol_view; }
+                attr() {
+                    return {
+                        mol_theme: '$mol_theme_dark',
+                        disabled: true,
+                    };
+                }
+            }
+            const sheet = $mol_style_sheet($mol_style_sheet_test, {
+                '@': {
+                    mol_theme: {
+                        '$mol_theme_dark': {
+                            Item: {
+                                color: 'red',
+                            },
+                        },
+                    },
+                },
+            });
+            $mol_assert_equal(sheet, '[mol_style_sheet_test]:where([mol_theme="$mol_theme_dark"]) :where([mol_style_sheet_test_item]) {\n\tcolor: red;\n}\n');
+        },
+        'inner component styles by class'() {
+            const sheet = $mol_style_sheet($mol_style_sheet_test2, {
+                color: 'red',
+                $mol_style_sheet_test1: {
+                    display: 'block',
+                },
+            });
+            $mol_assert_equal(sheet, '[mol_style_sheet_test2] {\n\tcolor: red;\n}\n[mol_style_sheet_test2] :where([mol_style_sheet_test1]) {\n\tdisplay: block;\n}\n');
+        },
+        'child component styles by class'() {
+            const sheet = $mol_style_sheet($mol_style_sheet_test2, {
+                color: 'red',
+                '>': {
+                    $mol_style_sheet_test1: {
+                        display: 'block',
+                    },
+                    $mol_style_sheet_test2: {
+                        display: 'inline',
+                    },
+                },
+            });
+            $mol_assert_equal(sheet, '[mol_style_sheet_test2] {\n\tcolor: red;\n}\n[mol_style_sheet_test2] > :where([mol_style_sheet_test1]) {\n\tdisplay: block;\n}\n[mol_style_sheet_test2] > :where([mol_style_sheet_test2]) {\n\tdisplay: inline;\n}\n');
+        },
+    });
+})($ || ($ = {}));
+
+;
+"use strict";
+var $;
+(function ($) {
     $mol_test({
         '$mol_syntax2_md_flow'() {
             const check = (input, right) => {
@@ -17124,6 +18975,169 @@ var $;
 ;
 "use strict";
 var $;
+(function ($_1) {
+    var $$;
+    (function ($$) {
+        $mol_test({
+            'handle clicks by default'($) {
+                let clicked = false;
+                const clicker = $mol_button.make({
+                    $,
+                    click: (event) => { clicked = true; },
+                });
+                const element = clicker.dom_tree();
+                const event = $mol_dom_context.document.createEvent('mouseevent');
+                event.initEvent('click', true, true);
+                element.dispatchEvent(event);
+                $mol_assert_ok(clicked);
+            },
+            'no handle clicks if disabled'($) {
+                let clicked = false;
+                const clicker = $mol_button.make({
+                    $,
+                    click: (event) => { clicked = true; },
+                    enabled: () => false,
+                });
+                const element = clicker.dom_tree();
+                const event = $mol_dom_context.document.createEvent('mouseevent');
+                event.initEvent('click', true, true);
+                element.dispatchEvent(event);
+                $mol_assert_not(clicked);
+            },
+            async 'Store error'($) {
+                const clicker = $mol_button.make({
+                    $,
+                    click: (event) => $.$mol_fail(new Error('Test error')),
+                });
+                const event = $mol_dom_context.document.createEvent('mouseevent');
+                $mol_assert_fail(() => clicker.event_activate(event), 'Test error');
+                await Promise.resolve();
+                $mol_assert_equal(clicker.status()[0].message, 'Test error');
+            },
+        });
+    })($$ = $_1.$$ || ($_1.$$ = {}));
+})($ || ($ = {}));
+
+;
+"use strict";
+var $;
+(function ($) {
+    class TestClass extends Uint8Array {
+    }
+    $mol_test({
+        'Uint8Array vs itself'() {
+            $mol_assert_ok($mol_compare_array(new Uint8Array, new Uint8Array));
+            $mol_assert_ok($mol_compare_array(new Uint8Array([0]), new Uint8Array([0])));
+            $mol_assert_not($mol_compare_array(new Uint8Array([0]), new Uint8Array([1])));
+        },
+        'Uint8Array vs subclassed array'() {
+            $mol_assert_not($mol_compare_array(new Uint8Array, new TestClass));
+        },
+    });
+})($ || ($ = {}));
+
+;
+"use strict";
+var $;
+(function ($) {
+    $mol_test({
+        'decode utf8 string'() {
+            const str = 'Hello, ΧΨΩЫ';
+            const encoded = new Uint8Array([72, 101, 108, 108, 111, 44, 32, 206, 167, 206, 168, 206, 169, 208, 171]);
+            $mol_assert_equal($mol_charset_decode(encoded), str);
+            $mol_assert_equal($mol_charset_decode(encoded, 'utf8'), str);
+        },
+        'decode empty string'() {
+            const encoded = new Uint8Array([]);
+            $mol_assert_equal($mol_charset_decode(encoded), '');
+        },
+    });
+})($ || ($ = {}));
+
+;
+"use strict";
+var $;
+(function ($) {
+    $mol_test({
+        'encode empty'() {
+            $mol_assert_equal($mol_charset_encode(''), new Uint8Array([]));
+        },
+        'encode 1 octet'() {
+            $mol_assert_equal($mol_charset_encode('F'), new Uint8Array([0x46]));
+        },
+        'encode 2 octet'() {
+            $mol_assert_equal($mol_charset_encode('Б'), new Uint8Array([0xd0, 0x91]));
+        },
+        'encode 3 octet'() {
+            $mol_assert_equal($mol_charset_encode('ह'), new Uint8Array([0xe0, 0xa4, 0xb9]));
+        },
+        'encode 4 octet'() {
+            $mol_assert_equal($mol_charset_encode('𐍈'), new Uint8Array([0xf0, 0x90, 0x8d, 0x88]));
+        },
+        'encode surrogate pair'() {
+            $mol_assert_equal($mol_charset_encode('😀'), new Uint8Array([0xf0, 0x9f, 0x98, 0x80]));
+        },
+    });
+})($ || ($ = {}));
+
+;
+"use strict";
+var $;
+(function ($) {
+    $mol_test({
+        'local get set delete'() {
+            var key = '$mol_state_local_test:' + Math.random();
+            $mol_assert_equal($mol_state_local.value(key), null);
+            $mol_state_local.value(key, 123);
+            $mol_assert_equal($mol_state_local.value(key), 123);
+            $mol_state_local.value(key, null);
+            $mol_assert_equal($mol_state_local.value(key), null);
+        },
+    });
+})($ || ($ = {}));
+
+;
+"use strict";
+var $;
+(function ($) {
+    $mol_test_mocks.push(context => {
+        class $mol_state_local_mock extends $mol_state_local {
+            static state = {};
+            static value(key, next = this.state[key]) {
+                return this.state[key] = (next || null);
+            }
+        }
+        __decorate([
+            $mol_mem_key
+        ], $mol_state_local_mock, "value", null);
+        context.$mol_state_local = $mol_state_local_mock;
+    });
+})($ || ($ = {}));
+
+;
+"use strict";
+var $;
+(function ($_1) {
+    $mol_test_mocks.push($ => {
+        class $mol_locale_mock extends $mol_locale {
+            lang(next = 'en') { return next; }
+            static source(lang) {
+                return {};
+            }
+        }
+        __decorate([
+            $mol_mem
+        ], $mol_locale_mock.prototype, "lang", null);
+        __decorate([
+            $mol_mem_key
+        ], $mol_locale_mock, "source", null);
+        $.$mol_locale = $mol_locale_mock;
+    });
+})($ || ($ = {}));
+
+;
+"use strict";
+var $;
 (function ($) {
     $mol_test({
         'null by default'() {
@@ -17136,6 +19150,131 @@ var $;
             $mol_assert_equal($mol_state_session.value(key), '$mol_state_session_test');
             $mol_state_session.value(key, null);
             $mol_assert_equal($mol_state_session.value(key), null);
+        },
+    });
+})($ || ($ = {}));
+
+;
+"use strict";
+var $;
+(function ($) {
+    $mol_test_mocks.push(context => {
+        class $mol_state_arg_mock extends $mol_state_arg {
+            static $ = context;
+            static href(next) { return next || ''; }
+            static go(next) {
+                this.href(this.link(next));
+            }
+        }
+        __decorate([
+            $mol_mem
+        ], $mol_state_arg_mock, "href", null);
+        __decorate([
+            $mol_action
+        ], $mol_state_arg_mock, "go", null);
+        context.$mol_state_arg = $mol_state_arg_mock;
+    });
+})($ || ($ = {}));
+
+;
+"use strict";
+/** @jsx $mol_jsx */
+/** @jsxFrag $mol_jsx_frag */
+var $;
+(function ($) {
+    $mol_test({
+        'safe tag'() {
+            $mol_assert_equal($mol_dom_serialize($$.$mol_dom_safe([$mol_jsx("div", null, "foo")])[0]), $mol_dom_serialize($mol_jsx("div", null, "foo")));
+        },
+        'bad tag'() {
+            $mol_assert_equal($mol_dom_serialize($$.$mol_dom_safe([$mol_jsx("script", null, "alert('ahtung!')")])[0]), $mol_dom_serialize($mol_jsx($mol_jsx_frag, null, "alert('ahtung!')")));
+        },
+        'common attr'() {
+            $mol_assert_equal($mol_dom_serialize($$.$mol_dom_safe([$mol_jsx("a", { id: "foo" }, "foo")])[0]), $mol_dom_serialize($mol_jsx("a", { id: "foo" }, "foo")));
+        },
+        'safe attr'() {
+            $mol_assert_equal($mol_dom_serialize($$.$mol_dom_safe([$mol_jsx("a", { href: "https://example.org/" }, "foo")])[0]), $mol_dom_serialize($mol_jsx("a", { href: "https://example.org/" }, "foo")));
+        },
+        'bad attr'() {
+            $mol_assert_equal($mol_dom_serialize($$.$mol_dom_safe([$mol_jsx("a", { onclick: "alert('ahtung!')" }, "foo")])[0]), $mol_dom_serialize($mol_jsx("a", null, "foo")));
+        },
+        'danger attr'() {
+            $mol_assert_equal($mol_dom_serialize($$.$mol_dom_safe([$mol_jsx("a", { href: "javascript:alert('ahtung!')" }, "foo")])[0]), $mol_dom_serialize($mol_jsx("a", { href: "about:blank#javascript:alert('ahtung!')" }, "foo")));
+        },
+    });
+})($ || ($ = {}));
+
+;
+"use strict";
+var $;
+(function ($) {
+    /** Методы доски живут в `$$`, поэтому тип берём оттуда же. */
+    function board(rows, columns, order) {
+        const game = new $bog_pazzle_board;
+        game.rows = () => rows;
+        game.columns = () => columns;
+        game.order = () => order;
+        game.playable = () => true;
+        return game;
+    }
+    $mol_test({
+        'перемешивание никогда не выдаёт собранный порядок'() {
+            for (let attempt = 0; attempt < 200; attempt++) {
+                const order = $bog_pazzle_store.shuffled(4);
+                $mol_assert_equal(order.length, 4);
+                $mol_assert_equal([...order].sort().join(), '0,1,2,3');
+                $mol_assert_not($bog_pazzle_store.assembled(order));
+            }
+        },
+        'сетка из одной клетки собрана сразу'() {
+            $mol_assert_ok($bog_pazzle_store.assembled($bog_pazzle_store.shuffled(1)));
+            $mol_assert_not($bog_pazzle_store.assembled([]));
+        },
+        'секундомер не считает долгую паузу'() {
+            const now = 1_000_000;
+            const save = $bog_pazzle_store.blank('x', 2, 2, true);
+            $mol_assert_equal($bog_pazzle_store.gap({ ...save, last_at: 0 }, now), 0);
+            $mol_assert_equal($bog_pazzle_store.gap({ ...save, last_at: now - 3000 }, now), 3000);
+            $mol_assert_equal($bog_pazzle_store.gap({ ...save, last_at: now - 60_000 }, now), 0);
+            $mol_assert_equal($bog_pazzle_store.gap({ ...save, last_at: now - 1000, solved: true }, now), 0);
+        },
+        'время и ходы по-русски'() {
+            $mol_assert_equal($bog_pazzle_store.clock(0), '0:00');
+            $mol_assert_equal($bog_pazzle_store.clock(61_000), '1:01');
+            $mol_assert_equal($bog_pazzle_store.clock(3_599_000), '59:59');
+            $mol_assert_equal($bog_pazzle_store.moves_label(1), '1 ход');
+            $mol_assert_equal($bog_pazzle_store.moves_label(3), '3 хода');
+            $mol_assert_equal($bog_pazzle_store.moves_label(11), '11 ходов');
+            $mol_assert_equal($bog_pazzle_store.moves_label(21), '21 ход');
+            $mol_assert_equal($bog_pazzle_store.moves_label(112), '112 ходов');
+        },
+        'обмен двух фрагментов'() {
+            const game = board(2, 2, [3, 1, 2, 0]);
+            $mol_assert_equal(game.shift_order([0], [3])?.join(), '0,1,2,3');
+        },
+        'группа не выезжает за край'() {
+            const game = board(2, 2, [0, 1, 2, 3]);
+            $mol_assert_equal(game.shifted([0, 1], -1, 0), null);
+            $mol_assert_equal(game.shifted([0, 1], 1, 0)?.join(), '2,3');
+        },
+        'сдвиг группы вытесняет соседей'() {
+            // верхняя строка уже сложена, нижняя перевёрнута
+            const game = board(2, 2, [0, 1, 3, 2]);
+            const dest = game.shifted([0, 1], 1, 0);
+            $mol_assert_equal(game.shift_order([0, 1], dest)?.join(), '3,2,0,1');
+        },
+        'соседние куски картинки склеиваются в группу'() {
+            const game = board(2, 2, [0, 1, 3, 2]);
+            $mol_assert_equal(game.group(0).join(), '0,1');
+            $mol_assert_equal(game.group(2).join(), '2');
+            $mol_assert_ok(game.tile_locked(0));
+            $mol_assert_not(game.tile_locked(2));
+        },
+        'куски, лежащие рядом, но не на своих местах, тоже группа'() {
+            // 2 и 3 стоят рядом в правильном порядке, но на чужой строке
+            const game = board(2, 2, [2, 3, 0, 1]);
+            $mol_assert_equal(game.group(0).join(), '0,1');
+            $mol_assert_not(game.tile_locked(0));
         },
     });
 })($ || ($ = {}));
