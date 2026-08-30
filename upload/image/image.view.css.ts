@@ -1,21 +1,31 @@
 namespace $.$$ {
-	$mol_style_define($bog_pazzle_upload_image, {
-		width: '12rem',
-		height: '12rem',
+
+	const { rem } = $mol_style_unit
+
+	$mol_style_define( $bog_pazzle_upload_image, {
+
+		width: rem( 12 ),
+		height: rem( 12 ),
 		padding: 0,
 		border: { radius: $mol_gap.round },
-		background: { color: $mol_theme.card },
+		background: { color: $mol_theme.field },
 		display: 'flex',
 		alignItems: 'center',
 		justifyContent: 'center',
 		position: 'relative',
 		overflow: 'hidden',
 
-		$mol_image: {
+		Preview: {
 			width: '100%',
 			height: '100%',
 			maxWidth: '100%',
 			objectFit: 'cover',
+		},
+
+		Icon: {
+			width: rem( 3 ),
+			height: rem( 3 ),
+			color: $mol_theme.shade,
 		},
 
 		Native: {
@@ -28,9 +38,6 @@ namespace $.$$ {
 			cursor: 'pointer',
 		},
 
-		Placeholder: {
-			width: '48px',
-			height: '48px',
-		},
-	})
+	} )
+
 }

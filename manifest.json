@@ -1,0 +1,19 @@
+{
+	"name": "Пазл",
+	"short_name": "Пазл",
+	"description": "Пазл из своей картинки: собирается прямо в браузере, партия сохраняется.",
+	"lang": "ru",
+	"icons": [
+		{
+			"src": "bog/pazzle/assets/favicon.svg",
+			"type": "image/svg+xml",
+			"sizes": "any",
+			"purpose": "any"
+		}
+	],
+	"start_url": ".",
+	"display": "standalone",
+	"orientation": "portrait-primary",
+	"background_color": "#000000",
+	"theme_color": "#000000"
+}

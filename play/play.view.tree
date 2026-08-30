@@ -1,15 +1,23 @@
 $bog_pazzle_play $mol_view
-	Board $bog_pazzle_board
 	moves 0
+	time \
+	peek? false
+	again? null
+	Game $bog_pazzle_board
 	sub /
-		<= Toolbar $mol_row
+		<= Toolbar $mol_view
 			sub /
-				<= Back $mol_link
-					arg *
-						mode null
-					sub /
-						<= Back_label $mol_text
-							text \← Назад
-				<= Moves_text $mol_text
+				<= Clock $mol_text
+					text <= time
+				<= Moves $mol_text
 					text <= moves_label \
-		<= Board
+				<= Filler $mol_view
+				<= Peek_toggle $mol_check_box
+					title \Оригинал
+					hint \Показать картинку целиком
+					checked? <=> peek?
+				<= Again $mol_button_minor
+					title \Заново
+					hint \Перемешать и начать партию сначала
+					click? <=> again?
+		<= Game

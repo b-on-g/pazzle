@@ -1,0 +1,16 @@
+$bog_pazzle_saves $mol_list
+	open? null
+	create? null
+	Row* $bog_pazzle_saves_item
+		id <= row_id* \
+		open? <=> open?
+		drop? <=> drop? null
+	rows <= saves_content /
+		<= Empty $mol_text
+			text \Здесь пока пусто. Загрузите картинку — и пазл появится в списке.
+		<= Create $mol_button_major
+			hint \Собрать пазл из другой картинки
+			click? <=> create?
+			sub /
+				<= Create_icon $mol_icon_image_plus
+				\Новый пазл

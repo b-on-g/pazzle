@@ -1,4 +1,12 @@
 $bog_pazzle_upload_image $mol_button_open
-	title \Загрузить изображение
-	image_data? null
+	hint \Выбрать картинку
 	image_uri \
+	picked? null
+	accept \image/*
+	multiple false
+	sub /
+		<= Icon $mol_icon_image_plus
+		<= Preview $mol_image
+			uri <= image_uri
+			title \Выбранная картинка
+		<= Native

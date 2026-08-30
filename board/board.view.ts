@@ -1,604 +1,406 @@
 namespace $.$$ {
+
+	type $bog_pazzle_board_selection = {
+		key: string
+		picked: number | null
+		from: number | null
+		drag: readonly number[] | null
+		drop: readonly number[] | null
+	}
+
 	export class $bog_pazzle_board extends $.$bog_pazzle_board {
-		@$mol_mem
-		image_dimensions() {
-			const uri = this.image_uri()
-			if (!uri) return null
-			return $mol_wire_sync(this).image_load(uri)
+
+		@ $mol_mem
+		board_content(): readonly $mol_view[] {
+			return this.image_uri() ? [ this.Field() ] : [ this.Placeholder() ]
 		}
 
-		async image_load(uri: string) {
-			const img = new Image()
-			img.src = uri
-			await img.decode()
-			return { width: img.naturalWidth, height: img.naturalHeight }
+		@ $mol_mem
+		field_content(): readonly $mol_view[] {
+			const parts: $mol_view[] = [ this.Grid() ]
+			if( this.peek() ) parts.push( this.Peek() )
+			if( this.merged() ) parts.push( this.Victory() )
+			return parts
 		}
 
-		@$mol_mem
-		grid_aspect_ratio() {
-			const dim = this.image_dimensions()
-			if (!dim) return ''
-			return `${dim.width} / ${dim.height}`
-		}
-
-		@$mol_mem
-		override sub() {
-			if (!this.image_present()) return [this.Placeholder()]
-			return [this.Controls(), this.Grid()]
-		}
-
-		Grid() {
-			const grid = super.Grid()
-			grid.sub = () => {
-				const tiles = [...this.tiles()]
-				if (this.solved()) tiles.push(this.Victory())
-				return tiles
-			}
-			return grid
-		}
-
-		Controls() {
-			const controls = super.Controls()
-			controls.sub = () => [
-				this.Status_text(),
-				this.Moves_text(),
-				...(this.tile_count() > 1 ? [this.Shuffle_btn(), this.Reset_btn()] : []),
-			]
-			return controls
-		}
-
-		Status_text() {
-			const $ = this.$
-			return $.$mol_text.make({
-				text: () => (this.solved() ? 'Собрано! 🎉' : 'Соберите пазл'),
-			})
-		}
-
-		Moves_text() {
-			const $ = this.$
-			return $.$mol_text.make({
-				text: () => `Ходов: ${this.moves()}`,
-			})
-		}
-
-		Shuffle_btn() {
-			const $ = this.$
-			return $.$mol_button_minor.make({
-				sub: () => [$.$mol_text.make({ text: () => 'Перемешать' })],
-				click: () => this.shuffle(),
-				enabled: () => this.tile_count() > 1,
-			})
-		}
-
-		Reset_btn() {
-			const $ = this.$
-			return $.$mol_button_minor.make({
-				sub: () => [$.$mol_text.make({ text: () => 'Сбросить' })],
-				click: () => this.reset(),
-				enabled: () => !this.solved() && this.tile_count() > 1,
-			})
-		}
-
-		@$mol_mem
-		image_present() {
-			return !!this.image_uri()
-		}
-
-		@$mol_mem
+		@ $mol_mem
 		tiles(): readonly $mol_view[] {
-			if (!this.image_present()) return []
+			return this.order().map( ( piece, slot )=> this.Tile( slot ) )
+		}
 
-			const rows = Math.max(1, this.rows())
-			const columns = Math.max(1, this.columns())
-			const order = this.tile_indices()
+		// ——— геометрия ———
+
+		grid_w() { return Math.max( 1, this.columns() ) }
+		grid_h() { return Math.max( 1, this.rows() ) }
+
+		slot_row( slot: number ) { return Math.floor( slot / this.grid_w() ) }
+		slot_col( slot: number ) { return slot % this.grid_w() }
+
+		grid_columns() { return 'repeat(' + this.grid_w() + ', 1fr)' }
+		grid_rows() { return 'repeat(' + this.grid_h() + ', 1fr)' }
+
+		@ $mol_mem
+		grid_ratio() {
+			const size = this.image_size()
+			return size ? size.width + ' / ' + size.height : ''
+		}
+
+		@ $mol_mem
+		image_size() {
 			const uri = this.image_uri()
-
-			return order.map((piece_index, slot_index) => {
-				const piece_row = Math.floor(piece_index / columns)
-				const piece_column = piece_index % columns
-				return this.tile({
-					slot_index,
-					piece_row,
-					piece_column,
-					rows,
-					columns,
-					uri,
-					piece_index,
-				})
-			})
+			if( !uri ) return null
+			return this.$.$mol_wire_sync( this ).image_load( uri )
 		}
 
-		tile({
-			slot_index,
-			piece_row,
-			piece_column,
-			rows,
-			columns,
-			uri,
-			piece_index,
-		}: {
-			slot_index: number
-			piece_row: number
-			piece_column: number
-			rows: number
-			columns: number
-			uri: string
-			piece_index: number
-		}) {
-			const tile = this.tile_instance(slot_index)
-			tile.rows(rows)
-			tile.columns(columns)
-			tile.piece_row(piece_row)
-			tile.piece_column(piece_column)
-			tile.image_uri(uri)
-			tile.slot_index(slot_index)
-			tile.label(this.show_numbers() ? String(piece_index + 1) : '')
-			tile.selected(this.tile_marked(slot_index))
-			tile.on_drag_start = ((event?: PointerEvent) => {
-				if (event !== undefined) this.tile_drag_start(slot_index, event)
-				return null
-			}) as any
-			tile.on_drag = ((event?: PointerEvent) => {
-				if (event !== undefined) this.tile_drag_move(slot_index, event)
-				return null
-			}) as any
-			tile.on_drag_end = ((event?: PointerEvent) => {
-				if (event !== undefined) this.tile_drag_end(slot_index, event)
-				return null
-			}) as any
-			const group = this.tile_groups().get(slot_index) ?? [slot_index]
-			const synced = group
-				.filter(member => member !== slot_index)
-				.map(member => this.tile_instance(member).Drag())
-			tile.drags_synced(synced)
-			return tile
+		async image_load( uri: string ) {
+			const image = new this.$.$mol_dom_context.Image()
+			image.src = uri
+			await image.decode()
+			return { width: image.naturalWidth, height: image.naturalHeight }
 		}
 
-		tile_instance(slot_index: number) {
-			const $ = this.$
-			return $.$bog_pazzle_board_tile.make({
-				slot_index: $.$mol_const(slot_index),
-			})
+		// ——— фрагменты ———
+
+		tile_slot( slot: number ) { return slot }
+
+		tile_piece( slot: number ) {
+			return this.order()[ slot ] ?? slot
 		}
 
-		slot_coord(slot: number) {
-			const columns = Math.max(1, this.columns())
-			return {
-				row: Math.floor(slot / columns),
-				col: slot % columns,
-			}
+		tile_label( slot: number ) {
+			return this.numbers() ? String( this.tile_piece( slot ) + 1 ) : ''
 		}
 
-		piece_coord(piece: number) {
-			const columns = Math.max(1, this.columns())
-			return {
-				row: Math.floor(piece / columns),
-				col: piece % columns,
-			}
+		tile_selected( slot: number ) {
+			if( this.drop_slots()?.includes( slot ) ) return true
+			if( this.drag_slots()?.includes( slot ) ) return true
+			return this.picked() === slot
 		}
 
-		slot_neighbors(slot: number) {
-			const neighbors: number[] = []
-			const columns = Math.max(1, this.columns())
-			const rows = Math.max(1, this.rows())
-			const { row, col } = this.slot_coord(slot)
-			if (col > 0) neighbors.push(slot - 1)
-			if (col + 1 < columns) neighbors.push(slot + 1)
-			if (row > 0) neighbors.push(slot - columns)
-			if (row + 1 < rows) neighbors.push(slot + columns)
-			return neighbors
+		/** Уже сложенные соседи едут вместе — их drag-плагины цепляем к ведущему. */
+		@ $mol_mem_key
+		tile_synced( slot: number ): readonly $.$rise_drag[] {
+			if( !this.playable() ) return []
+			return this.group( slot )
+				.filter( member => member !== slot )
+				.map( member => this.Tile( member ).Drag() )
 		}
 
-		slots_aligned(slot_a: number, slot_b: number, order: readonly number[]) {
-			const { row: row_a, col: col_a } = this.slot_coord(slot_a)
-			const { row: row_b, col: col_b } = this.slot_coord(slot_b)
-			const delta_row = row_b - row_a
-			const delta_col = col_b - col_a
-			if (Math.abs(delta_row) + Math.abs(delta_col) !== 1) return false
-
-			const piece_a = order[slot_a]
-			const piece_b = order[slot_b]
-			if (piece_a === undefined || piece_b === undefined) return false
-
-			const target_a = this.piece_coord(piece_a)
-			const target_b = this.piece_coord(piece_b)
-
-			return target_b.row - target_a.row === delta_row && target_b.col - target_a.col === delta_col
+		@ $mol_mem
+		assembled() {
+			return this.$.$bog_pazzle_store.assembled( this.order() )
 		}
 
-		@$mol_mem
-		tile_groups() {
-			const order = this.tile_indices()
-			const groups = new Map<number, readonly number[]>()
-			const visited = new Set<number>()
+		/** Пазл сложен — швы смыкаются. В предпросмотре сетку, наоборот, показываем. */
+		@ $mol_mem
+		merged() {
+			return this.playable() && this.assembled()
+		}
 
-			for (let slot = 0; slot < order.length; slot++) {
-				if (visited.has(slot)) continue
+		/** Высокая картинка иначе выпихивает доску за нижний край экрана. */
+		@ $mol_mem
+		field_width() {
+			const size = this.image_size()
+			if( !size || size.width >= size.height ) return ''
+			return Math.round( 70 * size.width / size.height ) + 'vh'
+		}
+
+		// ——— группы сложенных фрагментов ———
+
+		neighbors( slot: number ) {
+			const near: number[] = []
+			const columns = this.grid_w()
+			const row = this.slot_row( slot )
+			const col = this.slot_col( slot )
+			if( col > 0 ) near.push( slot - 1 )
+			if( col + 1 < columns ) near.push( slot + 1 )
+			if( row > 0 ) near.push( slot - columns )
+			if( row + 1 < this.grid_h() ) near.push( slot + columns )
+			return near
+		}
+
+		/** Соседние клетки держат соседние куски картинки — значит, они уже склеены. */
+		aligned( from: number, to: number, order: readonly number[] ) {
+
+			const shift_row = this.slot_row( to ) - this.slot_row( from )
+			const shift_col = this.slot_col( to ) - this.slot_col( from )
+			if( Math.abs( shift_row ) + Math.abs( shift_col ) !== 1 ) return false
+
+			const piece_from = order[ from ]
+			const piece_to = order[ to ]
+			if( piece_from === undefined || piece_to === undefined ) return false
+
+			const columns = this.grid_w()
+			return Math.floor( piece_to / columns ) - Math.floor( piece_from / columns ) === shift_row
+				&& piece_to % columns - piece_from % columns === shift_col
+		}
+
+		@ $mol_mem
+		groups() {
+
+			const order = this.order()
+			const groups = new Map< number, readonly number[] >()
+			const seen = new Set< number >()
+
+			for( let slot = 0; slot < order.length; slot ++ ) {
+
+				if( seen.has( slot ) ) continue
+
 				const group: number[] = []
-				const stack = [slot]
-				while (stack.length) {
+				const stack = [ slot ]
+
+				while( stack.length ) {
 					const current = stack.pop()!
-					if (visited.has(current)) continue
-					visited.add(current)
-					group.push(current)
-					for (const neighbor of this.slot_neighbors(current)) {
-						if (!visited.has(neighbor) && this.slots_aligned(current, neighbor, order)) stack.push(neighbor)
+					if( seen.has( current ) ) continue
+					seen.add( current )
+					group.push( current )
+					for( const near of this.neighbors( current ) ) {
+						if( !seen.has( near ) && this.aligned( current, near, order ) ) stack.push( near )
 					}
 				}
-				const readonly_group = Object.freeze([...group])
-				for (const member of readonly_group) groups.set(member, readonly_group)
+
+				const frozen = Object.freeze( group.sort( ( a, b )=> a - b ) ) as readonly number[]
+				for( const member of frozen ) groups.set( member, frozen )
+
 			}
 
 			return groups
 		}
 
-		tile_locked(slot_index: number) {
-			const group = this.tile_groups().get(slot_index) ?? [slot_index]
-			const order = this.tile_indices()
-			return group.every(slot => order[slot] === slot)
+		group( slot: number ): readonly number[] {
+			return this.groups().get( slot ) ?? [ slot ]
 		}
 
-		tile_marked(slot_index: number) {
-			const selected = this.selected_index()
-			const drag_source = this.drag_source_index()
-			const drag_hover = this.drag_hover_index()
-			const group = this.drag_group_slots()
-			const targets = this.drag_target_slots()
-			if (group && group.includes(slot_index)) return true
-			if (targets && targets.includes(slot_index)) return true
-			if (drag_source !== null && drag_source === slot_index) return true
-			if (drag_hover !== null && drag_hover === slot_index && drag_source !== null) return true
-			return selected !== null && selected === slot_index
+		/** Кусок, стоящий на своём месте, больше не двигаем — он уже дома. */
+		tile_locked( slot: number ) {
+			const order = this.order()
+			return this.group( slot ).every( member => order[ member ] === member )
 		}
 
-		@$mol_mem
-		drag_source_index(next?: number | null) {
-			this.rows()
-			this.columns()
-			this.image_uri()
-			if (next !== undefined) return next
-			return null
+		// ——— состояние перетаскивания ———
+
+		/** Смена картинки или сетки обесценивает всё выделенное. */
+		reset_key() {
+			return this.image_uri() + '|' + this.rows() + '|' + this.columns()
 		}
 
-		@$mol_mem
-		drag_hover_index(next?: number | null) {
-			this.rows()
-			this.columns()
-			this.image_uri()
-			if (next !== undefined) return next
-			return null
+		selection_blank(): $bog_pazzle_board_selection {
+			return { key: '', picked: null, from: null, drag: null, drop: null }
 		}
 
-		@$mol_mem
-		drag_group_slots(next?: readonly number[] | null) {
-			if (next !== undefined) return next ?? null
-			return null
+		/**
+		 * Ячейка, в которую пишут: после записи её зависимости замерзают,
+		 * поэтому ключ пазла кладём внутрь значения, а не читаем рядом.
+		 */
+		@ $mol_mem
+		selection_raw( next?: $bog_pazzle_board_selection ) {
+			if( next !== undefined ) return next
+			return this.selection_blank()
 		}
 
-		@$mol_mem
-		drag_target_slots(next?: readonly number[] | null) {
-			if (next !== undefined) return next ?? null
-			return null
+		/** Чтение сверяет ключ вживую — выделение от прошлого пазла не всплывёт. */
+		selection(): $bog_pazzle_board_selection {
+			const state = this.selection_raw()
+			return state.key === this.reset_key() ? state : this.selection_blank()
 		}
 
-		slot_index_from_point(client_x: number | undefined, client_y: number | undefined) {
-			if (client_x === undefined || client_y === undefined) return null
-			const doc = this.$.$mol_dom_context.document
-			const element = doc.elementFromPoint(client_x, client_y) as HTMLElement | null
-			const tile = element?.closest?.('[data-bog-pazzle-slot]') as HTMLElement | null
-			if (tile) {
-				const slot = Number(tile.getAttribute('data-bog-pazzle-slot'))
-				if (Number.isFinite(slot)) return slot
+		select( patch: Partial< $bog_pazzle_board_selection > ) {
+			this.selection_raw( { ... this.selection(), ... patch, key: this.reset_key() } )
+		}
+
+		picked() { return this.selection().picked }
+		drag_from() { return this.selection().from }
+		drag_slots() { return this.selection().drag }
+		drop_slots() { return this.selection().drop }
+
+		drag_reset() {
+			this.select( { from: null, drag: null, drop: null } )
+		}
+
+		/** Возвращает все фрагменты на свои клетки после перетаскивания. */
+		tiles_home() {
+			for( let slot = 0; slot < this.order().length; slot ++ ) {
+				const tile = this.Tile( slot )
+				tile.x( 0 )
+				tile.y( 0 )
+			}
+		}
+
+		slot_at( x: number, y: number ) {
+
+			const document = this.$.$mol_dom_context.document
+			const element = document.elementFromPoint( x, y ) as HTMLElement | null
+			const tile = element?.closest?.( '[data-pazzle-slot]' ) as HTMLElement | null
+
+			if( tile ) {
+				const slot = Number( tile.getAttribute( 'data-pazzle-slot' ) )
+				if( Number.isFinite( slot ) ) return slot
 			}
 
 			const grid = this.Grid().dom_node() as HTMLElement | null
-			if (!grid) return null
+			if( !grid ) return null
+
 			const rect = grid.getBoundingClientRect()
-			if (client_x < rect.left || client_x > rect.right || client_y < rect.top || client_y > rect.bottom)
+			if( x < rect.left || x > rect.right || y < rect.top || y > rect.bottom ) return null
+
+			const columns = this.grid_w()
+			const rows = this.grid_h()
+			const col = Math.min( columns - 1, Math.max( 0, Math.floor( ( x - rect.left ) / ( rect.width / columns ) ) ) )
+			const row = Math.min( rows - 1, Math.max( 0, Math.floor( ( y - rect.top ) / ( rect.height / rows ) ) ) )
+
+			return row * columns + col
+		}
+
+		// ——— ходы ———
+
+		@ $mol_action
+		tile_press( slot: number, next?: PointerEvent | null ) {
+
+			if( !this.playable() || this.tile_locked( slot ) ) {
+				this.drag_reset()
 				return null
-
-			const rel_x = client_x - rect.left
-			const rel_y = client_y - rect.top
-			const columns = Math.max(1, this.columns())
-			const rows = Math.max(1, this.rows())
-			const cell_width = rect.width / columns
-			const cell_height = rect.height / rows
-
-			const column = Math.min(columns - 1, Math.max(0, Math.floor(rel_x / cell_width)))
-			const row = Math.min(rows - 1, Math.max(0, Math.floor(rel_y / cell_height)))
-			return row * columns + column
-		}
-
-		reset_tile_position(slot_index: number) {
-			const tile = this.tile_instance(slot_index)
-			tile.x(0)
-			tile.y(0)
-		}
-
-		@$mol_action
-		tile_drag_start(slot_index: number, _event: PointerEvent) {
-			if (this.tile_locked(slot_index)) {
-				this.drag_source_index(null)
-				this.drag_hover_index(null)
-				this.drag_group_slots(null)
-				this.drag_target_slots(null)
-				this.reset_tile_position(slot_index)
-				return
 			}
-			const group = this.tile_groups().get(slot_index) ?? [slot_index]
-			this.drag_group_slots(group)
-			this.drag_target_slots(group)
-			this.drag_source_index(slot_index)
-			this.drag_hover_index(slot_index)
-		}
 
-		@$mol_action
-		tile_drag_move(slot_index: number, event: PointerEvent) {
-			const source = this.drag_source_index()
-			if (source === null || slot_index !== source) return
-			const hover = this.slot_index_from_point(event.clientX, event.clientY)
-			const group = this.drag_group_slots() ?? [source]
-			if (hover === null) {
-				this.drag_hover_index(source)
-				this.drag_target_slots(group)
-				return
-			}
-			this.drag_hover_index(hover)
-			const source_coord = this.slot_coord(source)
-			const hover_coord = this.slot_coord(hover)
-			const delta_row = hover_coord.row - source_coord.row
-			const delta_col = hover_coord.col - source_coord.col
-			const dest = this.group_dest_slots(group, delta_row, delta_col)
-			this.drag_target_slots(dest ?? group)
-		}
+			const group = this.group( slot )
+			this.select( { from: slot, drag: group, drop: group } )
 
-		@$mol_action
-		tile_drag_end(slot_index: number, event: PointerEvent) {
-			const source = this.drag_source_index()
-			if (source !== null && slot_index === source) {
-				const group = this.drag_group_slots() ?? [source]
-				const dest = this.drag_target_slots()
-				let moved = false
-				if (dest && dest.length === group.length && !this.same_slots(group, dest)) {
-					moved = this.apply_group_move(group, dest)
-				} else {
-					const target = this.slot_index_from_point(event.clientX, event.clientY)
-					if (target !== null && target !== source) {
-						const order = [...this.tile_indices()]
-						;[order[source], order[target]] = [order[target], order[source]]
-						this.tile_indices(order)
-						moved = true
-					} else {
-						// Click (no movement) — use click-to-select logic
-						this.reset_all_tile_positions()
-						this.drag_source_index(null)
-						this.drag_hover_index(null)
-						this.drag_group_slots(null)
-						this.drag_target_slots(null)
-						this.tile_pick(source)
-						return
-					}
-				}
-				if (moved) this.moves(this.moves() + 1)
-			}
-			this.reset_all_tile_positions()
-			this.selected_index(null)
-			this.drag_source_index(null)
-			this.drag_hover_index(null)
-			this.drag_group_slots(null)
-			this.drag_target_slots(null)
-		}
-
-		@$mol_mem
-		tile_indices(next?: readonly number[]) {
-			const rows = Math.max(1, this.rows())
-			const columns = Math.max(1, this.columns())
-			const count = rows * columns
-			const image = this.image_uri()
-			const should_shuffle = this.shuffle_enabled()
-			if (!image || count === 0) return []
-			if (next !== undefined) return next
-			const base = this.indices_default(count)
-			if (!should_shuffle || count < 2) return base
-			return this.shuffle_with_seed(base, this.seed_from_string(`${image}|${rows}|${columns}`))
-		}
-
-		indices_default(count: number) {
-			return Array.from({ length: count }, (_, index) => index)
-		}
-
-		shuffle_with_seed(base: readonly number[], seed: number) {
-			const order = [...base]
-			let value = seed >>> 0
-			for (let index = order.length - 1; index > 0; index--) {
-				value = (value * 1664525 + 1013904223) >>> 0
-				const swap = value % (index + 1)
-				;[order[index], order[swap]] = [order[swap], order[index]]
-			}
-			if (this.is_order_solved(order) && order.length > 1) {
-				;[order[0], order[1]] = [order[1], order[0]]
-			}
-			return order
-		}
-
-		seed_from_string(source: string) {
-			let seed = 0
-			for (let index = 0; index < source.length; index++) {
-				seed = (seed * 31 + source.charCodeAt(index)) >>> 0
-			}
-			return seed || 1
-		}
-
-		@$mol_mem
-		selected_index(next?: number | null) {
-			this.rows()
-			this.columns()
-			this.image_uri()
-			if (next !== undefined) return next
 			return null
 		}
 
-		@$mol_mem
-		moves(next?: number) {
-			this.rows()
-			this.columns()
-			this.image_uri()
-			if (next !== undefined) return next
-			return 0
+		@ $mol_action
+		tile_drag( slot: number, next?: PointerEvent | null ) {
+
+			const from = this.drag_from()
+			if( from === null || slot !== from || !next ) return null
+
+			const group = this.drag_slots() ?? [ from ]
+			const over = this.slot_at( next.clientX, next.clientY )
+
+			if( over === null ) {
+				this.select( { drop: group } )
+				return null
+			}
+
+			const shift_row = this.slot_row( over ) - this.slot_row( from )
+			const shift_col = this.slot_col( over ) - this.slot_col( from )
+			this.select( { drop: this.shifted( group, shift_row, shift_col ) ?? group } )
+
+			return null
 		}
 
-		tile_count() {
-			return Math.max(1, this.rows()) * Math.max(1, this.columns())
+		@ $mol_action
+		tile_drop( slot: number, next?: PointerEvent | null ) {
+
+			const from = this.drag_from()
+			if( from === null || slot !== from ) {
+				this.tiles_home()
+				return null
+			}
+
+			const group = this.drag_slots() ?? [ from ]
+			const dest = this.drop_slots()
+			const moved = !!dest && dest.length === group.length && !this.same( group, dest )
+
+			// перетаскивание отменяет выбор тапом, а тап по той же клетке — наоборот, его продолжает
+			this.select( moved ? { from: null, drag: null, drop: null, picked: null } : { from: null, drag: null, drop: null } )
+			this.tiles_home()
+
+			if( moved ) {
+				const order = this.shift_order( group, dest! )
+				if( order ) this.commit( order )
+			} else {
+				this.pick( from )
+			}
+
+			return null
 		}
 
-		is_order_solved(order: readonly number[]) {
-			return order.every((value, index) => value === index)
-		}
+		/** Тап без перетаскивания: первый выбирает фрагмент, второй меняет их местами. */
+		@ $mol_action
+		pick( slot: number ) {
 
-		@$mol_mem
-		solved() {
-			const order = this.tile_indices()
-			return this.is_order_solved(order)
-		}
+			if( !this.playable() ) return
 
-		@$mol_action
-		tile_pick(slot_index: number) {
-			if (this.tile_locked(slot_index)) {
-				this.selected_index(null)
+			if( this.tile_locked( slot ) ) {
+				this.select( { picked: null } )
 				return
 			}
-			this.drag_source_index(null)
-			this.drag_hover_index(null)
-			const current = this.selected_index()
-			if (current === null) {
-				this.selected_index(slot_index)
+
+			const current = this.picked()
+
+			if( current === null ) {
+				this.select( { picked: slot } )
 				return
 			}
-			if (this.tile_locked(current)) {
-				this.selected_index(null)
+
+			if( current === slot || this.tile_locked( current ) ) {
+				this.select( { picked: null } )
 				return
 			}
-			if (current === slot_index) {
-				this.selected_index(null)
-				return
-			}
-			const order = [...this.tile_indices()]
-			;[order[current], order[slot_index]] = [order[slot_index], order[current]]
-			this.tile_indices(order)
-			this.moves(this.moves() + 1)
-			this.selected_index(null)
+
+			const order = [ ... this.order() ]
+			;[ order[ current ], order[ slot ] ] = [ order[ slot ], order[ current ] ]
+			this.select( { picked: null } )
+			this.commit( order )
 		}
 
-		@$mol_action
-		shuffle() {
-			const order = this.shuffle_random(this.tile_indices())
-			this.tile_indices(order)
-			this.moves(0)
-			this.selected_index(null)
-			this.drag_source_index(null)
-			this.drag_hover_index(null)
-			this.drag_group_slots(null)
-			this.drag_target_slots(null)
-			this.reset_all_tile_positions()
+		commit( order: readonly number[] ) {
+			this.apply( { order, moves: this.moves() + 1 } as $bog_pazzle_store_move )
 		}
 
-		shuffle_random(base: readonly number[]) {
-			const order = [...base]
-			for (let index = order.length - 1; index > 0; index--) {
-				const swap = Math.floor(Math.random() * (index + 1))
-				;[order[index], order[swap]] = [order[swap], order[index]]
-			}
-			if (this.is_order_solved(order) && order.length > 1) {
-				;[order[0], order[1]] = [order[1], order[0]]
-			}
-			return order
-		}
+		/** Куда уедет группа при сдвиге на столько строк и столбцов. null — за край доски. */
+		shifted( group: readonly number[], shift_row: number, shift_col: number ) {
 
-		@$mol_action
-		reset() {
-			const rows = Math.max(1, this.rows())
-			const columns = Math.max(1, this.columns())
-			this.tile_indices(this.indices_default(rows * columns))
-			this.moves(0)
-			this.selected_index(null)
-			this.drag_source_index(null)
-			this.drag_hover_index(null)
-			this.drag_group_slots(null)
-			this.drag_target_slots(null)
-			this.reset_all_tile_positions()
-		}
-
-		reset_all_tile_positions() {
-			const total = this.tile_count()
-			for (let slot = 0; slot < total; slot++) {
-				this.reset_tile_position(slot)
-			}
-		}
-
-		group_dest_slots(group: readonly number[], delta_row: number, delta_col: number) {
-			const rows = Math.max(1, this.rows())
-			const columns = Math.max(1, this.columns())
+			const columns = this.grid_w()
+			const rows = this.grid_h()
 			const dest: number[] = []
-			const set = new Set<number>()
-			for (const slot of group) {
-				const { row, col } = this.slot_coord(slot)
-				const dest_row = row + delta_row
-				const dest_col = col + delta_col
-				if (dest_row < 0 || dest_row >= rows || dest_col < 0 || dest_col >= columns) return null
-				const dest_slot = dest_row * columns + dest_col
-				if (set.has(dest_slot)) return null
-				set.add(dest_slot)
-				dest.push(dest_slot)
-			}
-			return dest
-		}
+			const seen = new Set< number >()
 
-		same_slots(a: readonly number[], b: readonly number[]) {
-			if (a.length !== b.length) return false
-			for (let i = 0; i < a.length; i++) {
-				if (a[i] !== b[i]) return false
-			}
-			return true
-		}
-
-		apply_group_move(group: readonly number[], dest: readonly number[]) {
-			if (dest.length !== group.length) return false
-			const order = this.tile_indices()
-			const new_order = [...order]
-			const group_set = new Set(group)
-			const dest_set = new Set(dest)
-			if (dest_set.size !== dest.length) return false
-
-			const displaced: number[] = []
-			const sources_for_displaced: number[] = []
-
-			for (let i = 0; i < group.length; i++) {
-				const src = group[i]
-				const dst = dest[i]
-				const piece = order[src]
-				const occupant = order[dst]
-				if (!group_set.has(dst)) displaced.push(occupant)
-				new_order[dst] = piece
-				if (!dest_set.has(src)) sources_for_displaced.push(src)
+			for( const slot of group ) {
+				const row = this.slot_row( slot ) + shift_row
+				const col = this.slot_col( slot ) + shift_col
+				if( row < 0 || row >= rows || col < 0 || col >= columns ) return null
+				const target = row * columns + col
+				if( seen.has( target ) ) return null
+				seen.add( target )
+				dest.push( target )
 			}
 
-			if (displaced.length !== sources_for_displaced.length) return false
+			return dest as readonly number[]
+		}
 
-			let index = 0
-			for (const src of sources_for_displaced) {
-				new_order[src] = displaced[index++]
+		same( a: readonly number[], b: readonly number[] ) {
+			return a.length === b.length && a.every( ( value, index )=> value === b[ index ] )
+		}
+
+		/** Группа встаёт на новые клетки, вытесненные фрагменты занимают освободившиеся. */
+		shift_order( group: readonly number[], dest: readonly number[] ) {
+
+			const order = this.order()
+			const next = [ ... order ]
+			const from_set = new Set( group )
+			const to_set = new Set( dest )
+
+			const evicted: number[] = []
+			const vacant: number[] = []
+
+			for( let index = 0; index < group.length; index ++ ) {
+				const from = group[ index ]
+				const to = dest[ index ]
+				if( !from_set.has( to ) ) evicted.push( order[ to ] )
+				if( !to_set.has( from ) ) vacant.push( from )
+				next[ to ] = order[ from ]
 			}
 
-			this.tile_indices(new_order)
-			return true
+			if( evicted.length !== vacant.length ) return null
+
+			for( let index = 0; index < vacant.length; index ++ ) {
+				next[ vacant[ index ] ] = evicted[ index ]
+			}
+
+			return next as readonly number[]
 		}
 
-		grid_template_columns() {
-			return `repeat(${Math.max(1, this.columns())}, 1fr)`
-		}
-
-		grid_template_rows() {
-			return `repeat(${Math.max(1, this.rows())}, 1fr)`
-		}
 	}
+
 }

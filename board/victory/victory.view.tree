@@ -1,9 +1,27 @@
 $bog_pazzle_board_victory $mol_view
 	moves 0
+	time \
+	best \
+	again? null
+	home? null
+	saves? null
 	sub /
 		<= Card $mol_list
-			rows /
+			rows <= card_content /
 				<= Title $mol_text
 					text \Пазл собран!
 				<= Stats $mol_text
-					text <= stats_text \
+					text <= stats \
+				<= Best $mol_text
+					text <= best
+				<= Actions $mol_row
+					sub /
+						<= Again $mol_button_major
+							title \Ещё раз
+							click? <=> again?
+						<= Home $mol_button_minor
+							title \Другая картинка
+							click? <=> home?
+						<= Saves $mol_button_minor
+							title \Мои пазлы
+							click? <=> saves?

@@ -1,23 +1,31 @@
 $bog_pazzle_upload $mol_list
-	Image_control $bog_pazzle_upload_image
-	Settings $bog_pazzle_settings
+	image_uri \
+	picked? null
+	grid_rows? 4
+	grid_columns? 4
+	numbers? true
+	start? null
 	Preview $bog_pazzle_board
-	rows /
-		<= Intro $mol_text
-			text \Загрузите изображение и настройте параметры пазла.
+	Image_control $bog_pazzle_upload_image
+		image_uri <= image_uri
+		picked? <=> picked?
+	Settings $bog_pazzle_settings
+		grid_rows? <=> grid_rows?
+		grid_columns? <=> grid_columns?
+		numbers? <=> numbers?
+	rows <= upload_content /
 		<= Image $mol_labeler
-			Label <= Image_label $mol_text
-				text \Изображение пазла
-			Content <= Image_control
+			title \Картинка
+			content /
+				<= Image_control
+		<= Hint $mol_text
+			text \Подойдёт любое фото с телефона — оно ужмётся само.
 		<= Settings_title $mol_text
-			text \Настройки пазла
+			text \Настройки
 		<= Settings
 		<= Preview_title $mol_text
-			text \Предпросмотр
+			text \Как ляжет сетка
 		<= Preview
-		<= Start_link $mol_link
-			arg *
-				mode \play
-			sub /
-				<= Start_label $mol_text
-					text \▶ Начать игру
+		<= Start $mol_button_major
+			title \Начать игру
+			click? <=> start?

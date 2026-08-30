@@ -1,14 +1,32 @@
 namespace $.$$ {
-	const { rem } = $mol_style_unit
-	$mol_style_define($bog_pazzle_upload, {
-		padding: $mol_gap.block,
-		border: { radius: $mol_gap.round },
-		boxShadow: `0 0 0 1px ${$mol_theme.line}`,
+
+	$mol_style_define( $bog_pazzle_upload, {
+
+		display: 'flex',
+		flexDirection: 'column',
 		gap: $mol_gap.block,
-		Image_label: {
-			margin: {
-				top: rem(1),
-			},
+		padding: $mol_gap.block,
+		background: { color: $mol_theme.card },
+		border: { radius: $mol_gap.round },
+		boxShadow: `0 0 0 1px ${ $mol_theme.line }`,
+		minWidth: 0,
+
+		Hint: {
+			color: $mol_theme.shade,
 		},
-	})
+
+		Settings_title: {
+			font: { weight: 'bold' },
+		},
+
+		Preview_title: {
+			font: { weight: 'bold' },
+		},
+
+		Start: {
+			justifyContent: 'center',
+		},
+
+	} )
+
 }

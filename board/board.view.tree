@@ -2,18 +2,53 @@ $bog_pazzle_board $mol_view
 	image_uri \
 	rows 1
 	columns 1
-	show_numbers false
-	shuffle_enabled false
-	sub /
+	numbers false
+	playable false
+	peek false
+	order /number
+	moves 0
+	time \
+	best \
+	apply? null
+	again? null
+	home? null
+	saves? null
+	sub <= board_content /
 		<= Placeholder $mol_text
-			text \Предпросмотр появится после выбора изображения.
-		<= Controls $mol_row
-		<= Grid $mol_view
+			text \Выберите картинку — здесь появится предпросмотр.
+		<= Field $mol_view
 			style *
-				gridTemplateColumns <= grid_template_columns \
-				gridTemplateRows <= grid_template_rows \
-				aspectRatio <= grid_aspect_ratio \
-			attr *
-				bog_pazzle_solved <= solved false
-	Victory $bog_pazzle_board_victory
-		moves <= moves 0
+				maxWidth <= field_width \
+			sub <= field_content /
+				<= Grid $mol_view
+					style *
+						gridTemplateColumns <= grid_columns \
+						gridTemplateRows <= grid_rows \
+						aspectRatio <= grid_ratio \
+					attr *
+						bog_pazzle_assembled <= merged false
+					sub <= tiles /
+				<= Peek $mol_image
+					uri <= image_uri
+					title \Оригинал
+				<= Victory $bog_pazzle_board_victory
+					moves <= moves
+					time <= time
+					best <= best
+					again? <=> again?
+					home? <=> home?
+					saves? <=> saves?
+	Tile* $bog_pazzle_board_tile
+		rows <= rows
+		columns <= columns
+		image_uri <= image_uri
+		playable <= playable
+		locked <= tile_locked* false
+		piece <= tile_piece* 0
+		slot <= tile_slot* 0
+		label <= tile_label* \
+		selected <= tile_selected* false
+		drags_synced <= tile_synced* /
+		on_drag_start? <=> tile_press*? null
+		on_drag? <=> tile_drag*? null
+		on_drag_end? <=> tile_drop*? null

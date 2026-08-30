@@ -1,0 +1,26 @@
+$bog_pazzle_saves_item $mol_view
+	id \
+	open? null
+	drop? null
+	sub /
+		<= Open $mol_button_minor
+			hint \Открыть пазл
+			click? <=> open_click? null
+			sub /
+				<= Thumb $mol_image
+					uri <= thumb \
+					title \
+				<= Info $mol_list
+					rows /
+						<= Label $mol_text
+							text <= label \
+						<= Stat $mol_text
+							text <= stat \
+		<= Drop $mol_button_minor
+			hint <= drop_hint \
+			click? <=> drop_click? null
+			attr *
+				^
+				bog_pazzle_confirm <= confirm? false
+			sub /
+				<= Drop_icon $mol_icon_delete

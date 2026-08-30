@@ -1,16 +1,32 @@
 $bog_pazzle_menu $mol_list
-	rows /
-		<= Title $mol_text
-			text \Меню
-		<= New_game $mol_button_major
+	resumable false
+	saves_count 0
+	home? null
+	play? null
+	saves? null
+	help? null
+	rows <= menu_content /
+		<= Resume $mol_button_major
+			hint \Вернуться к начатой партии
+			click? <=> play?
 			sub /
-				<= New_game_label $mol_text
-					text \Новый пазл
-		<= Saved $mol_button_minor
+				<= Resume_icon $mol_icon_play
+				\Продолжить
+		<= New $mol_button_major
+			hint \Собрать пазл из другой картинки
+			click? <=> home?
 			sub /
-				<= Saved_label $mol_text
-					text \Мои сохранения
+				<= New_icon $mol_icon_image_plus
+				\Новый пазл
+		<= Saves $mol_button_minor
+			hint \Начатые и собранные пазлы
+			click? <=> saves?
+			sub /
+				<= Saves_icon $mol_icon_content_save
+				<= saves_label \
 		<= Help $mol_button_minor
+			hint \Правила игры
+			click? <=> help?
 			sub /
-				<= Help_label $mol_text
-					text \Как играть
+				<= Help_icon $mol_icon_help
+				\Как играть

@@ -1,15 +1,13 @@
 $bog_pazzle_board_tile $rise_drag_view
 	rows 1
 	columns 1
-	piece_row 0
-	piece_column 0
+	piece 0
+	slot 0
 	image_uri \
+	playable false
+	locked false
 	selected false
 	label \
-	event_click?event null
-	slot_index 0
-	repos_x* 1
-	repos_y* 1
 	sub /
 		<= Number $mol_text
-			text <= label \
+			text <= label

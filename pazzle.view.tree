@@ -1,30 +1,72 @@
 $bog_pazzle $mol_page
 	plugins /
 		<= Theme $bog_theme_auto
-	head /
-		<= title \Pazzle
+	title <= caption \
+	tools /
 		<= Theme_toggle $bog_theme_toggle
 			theme_auto <= Theme
-	body <= body_content /
-	image_data? null
-	image_uri \
-	rows_count 4
-	columns_count 4
-	show_numbers true
-	shuffle_enabled true
-	Board $bog_pazzle_board
-		image_uri <= image_uri
-		rows <= rows_count
-		columns <= columns_count
-		show_numbers <= show_numbers
-		shuffle_enabled <= shuffle_enabled
-	Layout $bog_pazzle_layout
+	body <= screen /
+	Back $mol_button_minor
+		hint \В меню
+		click? <=> go_home?
+		sub /
+			<= Back_icon $mol_icon_arrow_left
+	-
+	go_home? null
+	go_play? null
+	go_saves? null
+	go_help? null
+	start? null
+	again? null
+	move? null
+	open? null
+	peek? false
+	-
+	Home $bog_pazzle_layout
+		Menu <= Menu $bog_pazzle_menu
+			resumable <= resumable false
+			saves_count <= saves_count 0
+			home? <=> go_home?
+			play? <=> go_play?
+			saves? <=> go_saves?
+			help? <=> go_help?
 		Upload <= Upload $bog_pazzle_upload
-			Image_control <= Image_control $bog_pazzle_upload_image
-				image_data? <=> image_data?
-				image_uri <= image_uri
-			Settings <= Settings $bog_pazzle_settings
-			Preview <= Board
+			image_uri <= draft_image \
+			picked? <=> draft_picked? null
+			grid_rows? <=> draft_rows? 4
+			grid_columns? <=> draft_columns? 4
+			numbers? <=> draft_numbers? true
+			start? <=> start?
+			Preview <= Preview $bog_pazzle_board
+				image_uri <= draft_image
+				rows <= draft_rows
+				columns <= draft_columns
+				numbers <= draft_numbers
+				order <= draft_order /number
+	-
 	Play $bog_pazzle_play
-		Board <= Board
-		moves <= play_moves 0
+		moves <= moves 0
+		time <= time \
+		peek? <=> peek?
+		again? <=> again?
+		Game <= Game $bog_pazzle_board
+			playable true
+			image_uri <= image \
+			rows <= rows 1
+			columns <= columns 1
+			numbers <= numbers false
+			order <= order /number
+			moves <= moves
+			time <= time
+			best <= best \
+			peek <= peek?
+			apply? <=> move?
+			again? <=> again?
+			home? <=> go_home?
+			saves? <=> go_saves?
+	-
+	Saves $bog_pazzle_saves
+		open? <=> open?
+		create? <=> go_home?
+	-
+	Help $bog_pazzle_help
